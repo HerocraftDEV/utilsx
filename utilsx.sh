@@ -1,5 +1,6 @@
 #!/bin/bash
-echo "UtilsX v1.0 | Fecha: $(date)"
+ver="v1.1"
+echo "UtilsX $ver | Fecha: $(date)"
 read -p "Escriba su nombre... " name
 echo "¡Bienvenido, $name!"
 echo "Para ver la lista de utilidades, escriba help"
@@ -7,16 +8,32 @@ echo " "
 
 calc() {
 read -p "Seleccione el primer número: " fn
-read -p "Seleccione el segundo número: " sn
 read -p "Seleccione el operador (+ * / -): " op
+read -p "Seleccione el segundo número: " sn
 resultado=$(echo "scale=2; $fn $op $sn" | bc)
 echo "Resultado: $resultado"
 echo " "
-} 
+}
+ 
+random_pass_gen() {
+read -p "Seleccione la longitud: " LONGITUD
+echo "Contraseña generada: "
+< /dev/urandom tr -dc 'A-Za-z0-9!@#$%&*()_=/\[]' | head -c $LONGITUD
+echo
+echo " "
+}
+
+ppt() {
+opciones=("piedra" "papel" "tijera")
+read -p "Elije piedra, papel o tijera: " opcppt
+jugada=$((RANDOM % 3))
+echo "La máquina eligió: ${opciones[$jugada]}"
+echo " "
+}
 
 clima() {
 read -p "Ciudad: " city
-API_KEY=""
+API_KEY="a7c478c9d8c57d5d8473860ab40d5f51"
 cityurl=$(echo "$city" | sed 's/ /%20/g')
 CIUDAD="$cityurl"
 UNITS="metric"
@@ -33,11 +50,14 @@ echo "Advertencia: es sensible a mayúsculas"
 echo "Lista de utilidades y comandos:"
 echo "1) calc = Calculadora simple"
 echo "2) clima = Ver el clima"
-echo "3) help = Muestra esta ayuda"
-echo "4) date = Muestra la fecha y hora"
-echo "5) saludo = Te saluda"
-echo "6) exit = Salir"
-echo "7) dependencias = Muestra la lista de programas necesarios para una experiencia completa."
+echo "3) passgen = Generador de contraseñas"
+echo "4) ppt = Juego de piedra, papel o tijera contra la máquina"
+echo "5) ver = Muestra la versión de la aplicación"
+echo "6) help = Muestra esta ayuda"
+echo "7) date = Muestra la fecha y hora"
+echo "8) saludo = Te saluda"
+echo "9) exit = Salir"
+echo "10) dependencias = Muestra la lista de programas necesarios para una experiencia completa."
 echo " "
 }
 
@@ -55,6 +75,7 @@ while true; do
   case "$entrada" in 
   saludo)
     echo "¡Hola, $name!"
+    echo " "
     ;;
   clima)
     clima
@@ -67,6 +88,7 @@ while true; do
     ;;
   date)
     echo "Fecha: $(date)"
+    echo " "
     ;;
   exit)
     echo "Cerrando..."
@@ -75,8 +97,19 @@ while true; do
   dependencias)
     dependencias
     ;;    
+  ppt)
+    ppt
+    ;;
+  passgen)
+    random_pass_gen
+    ;;
+  ver)
+    echo "UtilsX $ver"
+    echo " "
+    ;;
   *)
     echo "Error: $entrada no es un comando válido"
+    echo " "
     ;;
 esac
 done
