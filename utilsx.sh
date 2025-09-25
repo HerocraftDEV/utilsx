@@ -33,7 +33,7 @@ echo " "
 
 clima() {
 read -p "Ciudad: " city
-API_KEY="a7c478c9d8c57d5d8473860ab40d5f51"
+API_KEY=""
 cityurl=$(echo "$city" | sed 's/ /%20/g')
 CIUDAD="$cityurl"
 UNITS="metric"
@@ -71,7 +71,6 @@ echo " "
 
 while true; do
   read -p "UtilsX: " entrada
-  
   case "$entrada" in 
   saludo)
     echo "¡Hola, $name!"
