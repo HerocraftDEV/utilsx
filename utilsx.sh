@@ -1,18 +1,20 @@
 #!/bin/bash
-ver="v1.4"
-CONFIG_FILE="./utilsx_data/utilsx.conf"
-TODO_FILE="./utilsx_data/TODO.txt"
-AGENDA_FILE="./utilsx_data/AGENDA.txt"
-NOTES_FILE="./utilsx_data/NOTES.txt"
-PASSWORD_FILE="./utilsx_data/.passwords.enc"
-CONFIG_PATH="./utilsx_data"
+ver="v1.5"
+PROGRAMPATH="."
+CONFIG_FILE="$PROGRAMPATH/utilsx_data/utilsx.conf"
+TODO_FILE="$PROGRAMPATH/utilsx_data/TODO.txt"
+AGENDA_FILE="$PROGRAMPATH/utilsx_data/AGENDA.txt"
+NOTES_FILE="$PROGRAMPATH/utilsx_data/NOTES.txt"
+PASSWORD_FILE="$PROGRAMPATH/utilsx_data/.passwords.enc"
+CONFIG_PATH="$PROGRAMPATH/utilsx_data"
+HISTFILE="$PROGRAMPATH/utilsx_data/.hist"
 if [ -e "$CONFIG_PATH" ]; then
 :
 else
 echo "Se creará un nuevo directorio para datos del programa..."
 mkdir utilsx_data
 fi
-
+touch "$HISTFILE"
 checkdep() {
 if ! command -v "$1" >/dev/null 2>&1; then
 echo "Falta '$1'. Para más información use el comando DEPENDENCIAS"
@@ -33,20 +35,21 @@ else
   touch "$CONFIG_FILE"
 fi
 echo " "
-echo "UtilsX $ver | Fecha: $(date)"
 if [ -z "$USERNAME" ]; then
   read -p "Escriba su nombre... " USERNAME
   echo "USERNAME=\"$USERNAME\"" >> "$CONFIG_FILE"
   source "$CONFIG_FILE"
-  echo "¡Bienvenido, $USERNAME!"
+  echo "¡Bienvenido, $USERNAME! Ahora estás en el prompt de UtilsX $ver."
 else
-  echo "¡Hola, $USERNAME!"
+  echo "UtilsX $ver | $(date)"
+  echo "¡Hola de nuevo, $USERNAME!"
 fi
 
 echo "Para ver la lista de utilidades, escriba HELP"
 echo " "
 prompttext="UtilsX > "
-showdir=false
+showdir=true
+history -r $HISTFILE
 
 notes() {
 local cmd="$1"
@@ -108,6 +111,17 @@ if $USE_DEFAULT_CITY; then
 echo "¿No es esta tu ciudad? Puedes editarla en las opciones de configuración."
 fi
 echo " "
+}
+
+wiki() {
+local query=$(echo "$1" | sed 's/ /_/g')
+local response=$(curl -s "https://es.wikipedia.org/api/rest_v1/page/summary/$query")
+local extract=$(echo "$response" | jq -r '.extract')
+if [[ "$extract" == "null" || -z "$extract" ]]; then
+echo "No se encontró resumen para '$1'."
+else 
+echo "$extract"
+fi
 }
 
 show_tasks_todo() {
@@ -311,18 +325,19 @@ echo "5) qrgen = Generador de códigos QR"
 echo "6) passmanager = Administrador de contraseñas utilizando cifrado"
 echo "7) timer (tiempo) = Temporizador"
 echo "8) sysinfo = Muestra información del sistema"
-echo "9) agenda = Agenda"
-echo "10) notes = Notas rápidas"
-echo "11) searchfiles = Buscar archivos"
-echo "12) ver = Muestra la versión del programa"
-echo "13) showmydir = Cambia el texto del prompt al directorio actual"
-echo "14) dontshowmydir = Cambia el texto del prompt al texto normal"
-echo "15) help = Muestra esta ayuda"
-echo "16) exit = Salir"
-echo "17) dependencias = Muestra la lista de programas necesarios para una experiencia completa"
-echo "18) config = Configuración del programa"
-echo "19) reload = Recarga el programa"
-echo "20) El resto de comandos de bash son compatibles"
+echo "9) wiki (nombre) = Busca una página en wikipedia y muestra el resumen"
+echo "10) agenda = Agenda"
+echo "11) notes = Notas rápidas"
+echo "12) searchfiles = Buscar archivos"
+echo "13) ver = Muestra la versión del programa"
+echo "14) showmydir = Cambia el texto del prompt al directorio actual"
+echo "15) dontshowmydir = Cambia el texto del prompt al texto normal"
+echo "16) help = Muestra esta ayuda"
+echo "17) exit = Salir"
+echo "18) dependencias = Muestra la lista de programas necesarios para una experiencia completa"
+echo "19) config = Configuración del programa"
+echo "20) reload = Recarga el programa"
+echo "21) El resto de comandos de bash son compatibles"
 echo " "
 }
 
@@ -404,7 +419,9 @@ echo "1) Configurar API keys"
 echo "2) Cambiar nombre de usuario"
 echo "3) Cambiar ciudad predeterminada"
 echo "4) Cambiar el texto del prompt"
-echo "5) Salir"
+echo "5) Eliminar historial de comandos"
+echo "6) Muestra el historial de comandos"
+echo "7) Salir"
 while $dontquitconfig; do
 read -p "> " configselec
 case $configselec in 
@@ -412,7 +429,12 @@ case $configselec in
   2) setuser ;;
   3) setdefaultcity ;;
   4) setprompttext ;;
-  5) dontquitconfig=false ;; 
+  5) rm $HISTFILE 
+     echo "Reinicie el programa con RELOAD para completar los cambios"
+     echo " " ;;
+  6) cat "$HISTFILE"
+     echo " " ;;
+  7) dontquitconfig=false ;; 
   *) echo "Opción no válida" ;;
 esac
 done
@@ -424,15 +446,21 @@ while true; do
   else
    prompt="$prompttext"
   fi
-
-  read -p "$prompt" primeraentrada
+  read -e -p "$prompt" primeraentrada
   entradafinal=$(echo "$primeraentrada" | tr '[:upper:]' '[:lower:]')
+  echo "$primeraentrada" >> $HISTFILE
+  history -s "$primeraentrada"
   case "$entradafinal" in 
   clima)
     clima
     ;;
   calc)
     calc
+    ;;
+  wiki*)
+    buscar="${primeraentrada#wiki }"
+    wiki "$buscar"
+    echo " "
     ;;
   help)
     ayuda
