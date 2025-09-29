@@ -1,14 +1,18 @@
 #!/bin/bash
 ver="v1.5"
-PROGRAMPATH="."
+
+# Definiendo rutas de los archivos
+PROGRAMPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$PROGRAMPATH/utilsx_data/utilsx.conf"
 TODO_FILE="$PROGRAMPATH/utilsx_data/TODO.txt"
 AGENDA_FILE="$PROGRAMPATH/utilsx_data/AGENDA.txt"
 NOTES_FILE="$PROGRAMPATH/utilsx_data/NOTES.txt"
 PASSWORD_FILE="$PROGRAMPATH/utilsx_data/.passwords.enc"
-CONFIG_PATH="$PROGRAMPATH/utilsx_data"
+DATA_PATH="$PROGRAMPATH/utilsx_data"
 HISTFILE="$PROGRAMPATH/utilsx_data/.hist"
-if [ -e "$CONFIG_PATH" ]; then
+
+# Verifica si el directorio de datos del programa existe
+if [ -e "$DATA_PATH" ]; then
 :
 else
 echo "Se creará un nuevo directorio para datos del programa..."
@@ -21,12 +25,13 @@ echo "Falta '$1'. Para más información use el comando DEPENDENCIAS"
 fi
 }
 
-echo "Verificando dependencias..."
+# Verifica las dependencias
 checkdep jq
 checkdep bc
 checkdep qrencode
 checkdep openssl
 
+# Verifica si existe el archivo de configuración
 if [ -f "$CONFIG_FILE" ]; then
    source "$CONFIG_FILE"
 else
@@ -35,6 +40,8 @@ else
   touch "$CONFIG_FILE"
 fi
 echo " "
+
+# Verifica si USERNAME existe o no, si no es así pregunta tu nombre y lo guarda en el archivo de configuración 
 if [ -z "$USERNAME" ]; then
   read -p "Escriba su nombre... " USERNAME
   echo "USERNAME=\"$USERNAME\"" >> "$CONFIG_FILE"
@@ -47,13 +54,17 @@ fi
 
 echo "Para ver la lista de utilidades, escriba HELP"
 echo " "
+
+# Define el texto del prompt, carga el historial y habilita la visibilidad del directorio actual en lugar del texto del prompt
 prompttext="UtilsX > "
 showdir=true
 history -r $HISTFILE
 
+# Para el comando NOTES
 notes() {
 local cmd="$1"
 shift
+# Lista de los parámetros y lo que hacen del comando NOTES
 case "$cmd" in
   add)
     echo "$*" >> $NOTES_FILE
@@ -76,6 +87,7 @@ case "$cmd" in
 esac
 }
 
+# Función de la calculadora usando bc con los números seleccionados, comando CALC
 calc() {
 read -p "Seleccione el primer número: " fn
 read -p "Seleccione el operador (+ * / -): " op
@@ -84,7 +96,8 @@ resultado=$(echo "scale=2; $fn $op $sn" | bc)
 echo "Resultado: $resultado"
 echo " "
 }
- 
+
+# Usa /dev/urandom para generar una contraseña aleatoria de determinada longitud, comando PASSGEN
 random_pass_gen() {
 read -p "Longitud: " LONGITUD
 echo "Contraseña generada: "
@@ -93,12 +106,15 @@ echo
 echo " "
 }
 
+# Función principal del comando CLIMA
 clima() {
-if $USE_DEFAULT_CITY; then
+# Verifica si USE_DEFAULT_CITY es true en el archivo de configuración, si no es asi pregunta al usuario la ciudad deseada
+if [ "$USE_DEFAULT_CITY" = "true" ]; then
 CITY="$DEFAULT_CITY"
 else 
 read -p "Elija una ciudad: " CITY
 fi
+# curl a la API de openweathermap
 API_KEY="$OPENWEATHERMAP_API_KEY"
 cityurl=$(echo "$CITY" | sed 's/ /%20/g')
 UNITS="metric"
@@ -113,6 +129,7 @@ fi
 echo " "
 }
 
+# Función para buscar un resumen en wikipedia usando su API
 wiki() {
 local query=$(echo "$1" | sed 's/ /_/g')
 local response=$(curl -s "https://es.wikipedia.org/api/rest_v1/page/summary/$query")
@@ -124,12 +141,14 @@ echo "$extract"
 fi
 }
 
+# Función para mostrar las tareas en to-do
 show_tasks_todo() {
 echo "📃 Lista de tareas 📃"
 nl -w2 -s'. ' "$TODO_FILE"
 echo " "
 }
 
+# Función para añadir una contraseña
 add_password() {
 openssl enc -aes-256-cbc -d -in  "$PASSWORD_FILE" -pass pass:"$MASTERKEY" > temp.txt 2>/dev/null || touch temp.txt
 read -p "Nombre: " service
@@ -143,6 +162,7 @@ echo "Contraseña guardada y cifrada"
 echo " "
 }
 
+# Función para ver tus contraseñas guardadas
 view_passwords(){
 read -s -p "Ingresa tu clave de descifrado: " key
 echo " "
@@ -151,20 +171,24 @@ openssl enc -aes-256-cbc -d -in "$PASSWORD_FILE" -pass pass:"$MASTERKEY"
 echo " "
 }
 
+# Función del menú del password manager, comando PASSMANAGER
 pass_manager() {
 dontclosepassmanager=true
+# Verifica si es la primera vez que entras al PASSMANAGER, si es así crea una nueva MASTERKEY
 if [ -e "./utilsx_data/.verifier" ]; then
 :
 else
 touch ./utilsx_data/.verifier
 echo "$MASTERKEY" | openssl enc -aes-256-cbc -salt -out ./utilsx_data/.masterkey.enc
 fi
+# Muestra la lista de opciones
 echo " "
 echo "¡Bienvenido al gestor de contraseñas de UtilsX!"
 echo "Opciones: "
 echo "add = Agregar contraseña"
 echo "view = Ver contraseñas"
 echo "exit = Salir"
+# Bucle principal en el que se definen las opciones
 while $dontclosepassmanager; do
 read -p "Elija una opción: " opcion
 case $opcion in
@@ -176,7 +200,7 @@ esac
 done
 }
 
-
+# Función para marcar una tarea como completada en to-do
 complete_tasks_todo() {
 read -p "Número de tarea a completar: " num
 sed -i "${num}s/^/✅ /" "$TODO_FILE"
@@ -184,6 +208,7 @@ echo "✅ Tarea marcada como completada"
 echo " "
 }
 
+# Función para añadir una tarea a to-do
 add_tasks_todo() {
 read -p "Nombre de la tarea a añadir: " task
 echo "$task" >> "$TODO_FILE"
@@ -191,6 +216,7 @@ echo "✅ Tarea añadida"
 echo " "
 }
 
+# Función para eliminar tareas de to-do
 delete_tasks_todo() {
 read -p "Número de tarea a eliminar: " num
 sed -i "${num}d" "$TODO_FILE"
@@ -198,8 +224,10 @@ echo "🗑️ Tarea eliminada"
 echo " "
 }
 
+# Función principal del menú de to-do
 todo() {
 dontendtodo=true
+# Verifica si existe el archivo TODO.txt, si no es así lo crea
 if [ -f "$TODO_FILE" ]; then
   echo "¡Bienvenido a UtilsX To-Do!"
 else
@@ -207,6 +235,7 @@ else
   touch "$TODO_FILE"
   echo "¡Bienvenido a UtilsX To-Do!"
 fi
+# Lista de opciones
 echo "Opciones: "
 echo "list = Ver lista de tareas"
 echo "add = Agregar una tarea"
@@ -215,6 +244,7 @@ echo "del = Eliminar una tarea"
 echo "exit = Salir"
 echo "help = Muestra este mensaje"
 echo " "
+# Aquí se definen las opciones
 while $dontendtodo; do
   read -p "Seleccione una opción: " opciontodo
   case $opciontodo in
@@ -236,6 +266,7 @@ esac
 done
 }
 
+# Función para cambiar las API keys en el archivo de configuración, parte del comando CONFIG
 setapikeys() {
 read -s -p "Escriba su API key de OpenWeatherMap: " newowmapikey
 if grep -q "^OPENWEATHERMAP_API_KEY=" "$CONFIG_FILE"; then
@@ -247,6 +278,7 @@ source "$CONFIG_FILE"
 echo "Todas las API keys han sido actualizadas."
 }
 
+# Función para cambiar el nombre de usuario en el archivo de configuración, parte del comando CONFIG
 setuser() {
 read -p "Nuevo nombre de usuario: " newusername
 sed -i "s/^USERNAME=.*/USERNAME=\"$newusername\"/" "$CONFIG_FILE"
@@ -254,6 +286,7 @@ source "$CONFIG_FILE"
 echo "Nombre de usuario actualizado a $USERNAME"
 }
 
+# Función de eliminar de la agenda, parte del comando AGENDA
 delete_agenda() {
 read -p "Número a eliminar: " num
 sed -i "${num}d" "$AGENDA_FILE"
@@ -261,12 +294,14 @@ echo "🗑️ Eliminado"
 echo " "
 }
 
+# Función de mostrar a la agenda, parte del comando AGENDA
 show_agenda() {
 echo "📖 Agenda 📖"
 nl -w2 -s'. ' "$AGENDA_FILE"
 echo " "
 }
 
+# Función de añadir a la agenda, parte del comando AGENDA
 add_agenda() {
 read -p "Nombre: " name
 read -p "Fecha: " fecha
@@ -275,14 +310,17 @@ echo "✅ Añadido"
 echo " "
 }
 
+# Buscar archivos, comando SEARCHFILES
 findmyfiles() {
 read -p "Nombre (o parte del nombre): " name
 find . -type f -name "*$name*.*"
 echo " "
 }
 
+# Función principal de agenda usando el archivo AGENDA.txt, comando AGENDA
 agenda() {
 dontendagenda=true
+# Verifica si exite el archivo AGENDA.txt en la carpeta de datos, si no es así crea un archivo nuevo
 if [ -f "$AGENDA_FILE" ]; then
   echo "¡Bienvenido a la agenda de UtilsX!"
 else
@@ -290,12 +328,14 @@ else
   touch "$AGENDA_FILE"
   echo "¡Bienvenido a la agenda de UtilsX!"
 fi
+# Muestra las opciones
 echo "Opciones: "
 echo "list = Muestra la agenda"
 echo "add = Añadir a la agenda"
 echo "del = Eliminar de la agenda"
 echo "help = Muestra esta ayuda"
 echo "exit = Salir"
+# Bucle principal, aquí se definen las opciones
 while $dontendagenda; do
   read -p "Seleccione una opción: " opcionagenda
   case $opcionagenda in
@@ -314,7 +354,7 @@ esac
 done
 }
 
-
+# Muestra toda la lista de comandos
 ayuda() {
 echo "Lista de utilidades y comandos:"
 echo "1) calc = Calculadora simple"
@@ -341,6 +381,7 @@ echo "21) El resto de comandos de bash son compatibles"
 echo " "
 }
 
+# Función de temporizador simple, comando TIMER
 timer() {
 sleeptime=$1
 while [ $sleeptime -gt 0 ]; do
@@ -352,11 +393,13 @@ echo -e "\n✅ Tiempo terminado"
 echo " "
 }
 
+# Función para seleccionar el texto del prompt, parte del comando CONFIG
 setprompttext() {
 read -p "Seleccione el texto del prompt: " selec
 prompttext="$selec > "
 }
 
+# Función para mostrar las dependencias, comando DEPENDENCIAS
 dependencias() {
 echo "Lista de dependencias:"
 echo "1) bc - Comando CALC"
@@ -366,23 +409,28 @@ echo "4) openssl - Comando PASSMANAGER"
 echo " "
 }
 
+# Función de configuración para SET_DEFAULT_CITY en el archivo utilsx.conf, esta función parte del comando CONFIG
 setdefaultcity() {
+# Eliges tu ciudad predeterminada y verifica si ya existe esa línea en utilsx.conf, si es así modifica la linea actual, si no es asi la añade
 read -p "Escriba la ciudad que desea usar como predeterminada: " newcity
 if grep -q "^DEFAULT_CITY=" "$CONFIG_FILE"; then
 sed -i "s/^DEFAULT_CITY=.*/DEFAULT_CITY=\"$newcity\"/" "$CONFIG_FILE"
 else
 echo "DEFAULT_CITY=\"$newcity\"" >> "$CONFIG_FILE"
 fi
-read -p "Desea usar siempre esta ciudad para los comandos? (S/N) " tfcityselect
+
+# Te pregunta si deseas usar esa ciudad para todos los comandos que la requieran, y define la variable USE_DEFAULT_CITY en utilsx.conf
+read -p "Desea usar siempre esta ciudad para los comandos? (S/N) " tfcity
+tfcityselect=$(echo "$tfcity" | tr '[:upper:]' '[:lower:]')
 case $tfcityselect in
-  S) if grep -q "^USE_DEFAULT_CITY=" "$CONFIG_FILE"; then
+  s) if grep -q "^USE_DEFAULT_CITY=" "$CONFIG_FILE"; then
      sed -i "s/^USE_DEFAULT_CITY=.*/USE_DEFAULT_CITY=\"true\"/" "$CONFIG_FILE"
      else
      echo "USE_DEFAULT_CITY=true" >> "$CONFIG_FILE"
      fi
      source "$CONFIG_FILE"
      ;;
-  N) if grep -q "^USE_DEFAULT_CITY=" "$CONFIG_FILE"; then
+  n) if grep -q "^USE_DEFAULT_CITY=" "$CONFIG_FILE"; then
      sed -i "s/^USE_DEFAULT_CITY=.*/USE_DEFAULT_CITY=\"false\"/" "$CONFIG_FILE"
      else
      echo "USE_DEFAULT_CITY=false" >> "$CONFIG_FILE"
@@ -393,6 +441,7 @@ esac
 echo "La ciudad predeterminada se ha establecido correctamente."
 }
 
+# Función que muestra información del sistema, comando SYSINFO
 systeminfo() {
 echo "🖥️ Hostname: $(hostname)"
 echo "💿 Sistema operativo: $(uname -o)"
@@ -402,6 +451,7 @@ echo "☀  Uptime: $(uptime -p)"
 echo " "
 }
 
+# Función para generar códigos QR usando qrencode, comando QRGEN
 qrgen() {
 read -p "Ingrese el texto o URL para el QR: " qrinput
 read -p "Nombre del archivo de salida (sin extensión): " qrname
@@ -411,7 +461,10 @@ echo "QR generado como ${qrname}.png"
 echo " "
 }
 
+
+# Función del comando CONFIG
 configurar() {
+# Texto de ayuda
 dontquitconfig=true
 echo "Configuración de UtilsX"
 echo "Seleccione una opción para continuar..."
@@ -422,6 +475,8 @@ echo "4) Cambiar el texto del prompt"
 echo "5) Eliminar historial de comandos"
 echo "6) Muestra el historial de comandos"
 echo "7) Salir"
+
+# Mientras la variable dontquitconfig sea true, se podrá seleccionar una de las 7 opciones
 while $dontquitconfig; do
 read -p "> " configselec
 case $configselec in 
@@ -440,16 +495,20 @@ esac
 done
 }
 
+# Bucle principal en donde se definen los comandos
 while true; do
-  if $showdir; then
+  # Define el texto del prompt según la variable showdir
+  if [ "$showdir" = "true" ]; then
    prompt="$(pwd) > "
   else
    prompt="$prompttext"
   fi
+  # Define el read principal y el historial de mensajes
   read -e -p "$prompt" primeraentrada
   entradafinal=$(echo "$primeraentrada" | tr '[:upper:]' '[:lower:]')
   echo "$primeraentrada" >> $HISTFILE
   history -s "$primeraentrada"
+  # Aquí se define lo que hace cada comando
   case "$entradafinal" in 
   clima)
     clima
