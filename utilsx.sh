@@ -123,7 +123,7 @@ temp=$(echo "$respuesta" | jq '.main.temp')
 desc=$(echo "$respuesta" | jq -r '.weather[0].description')
 echo "Temperatura en $CITY: $temp ºC"
 echo "Estado: $desc"
-if $USE_DEFAULT_CITY; then
+if [ "$USE_DEFAULT_CITY" = "true" ]; then
 echo "¿No es esta tu ciudad? Puedes editarla en las opciones de configuración."
 fi
 echo " "
@@ -155,7 +155,7 @@ read -p "Nombre: " service
 read -s -p "Contraseña: " password
 echo " "
 echo "$service:$password" >> temp.txt
-openssl enc -aes-256-cbc -salt -in temp.txt -out "$PASSWORD_FILE" -pass pass:"$MASTERKEY"
+openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in temp.txt -out "$PASSWORD_FILE" -pass pass:"$MASTERKEY"
 echo " "
 rm temp.txt
 echo "Contraseña guardada y cifrada"
@@ -167,7 +167,7 @@ view_passwords(){
 read -s -p "Ingresa tu clave de descifrado: " key
 echo " "
 echo " "
-openssl enc -aes-256-cbc -d -in "$PASSWORD_FILE" -pass pass:"$MASTERKEY"
+openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -d -in "$PASSWORD_FILE" -pass pass:"$MASTERKEY"
 echo " "
 }
 
@@ -179,7 +179,7 @@ if [ -e "./utilsx_data/.verifier" ]; then
 :
 else
 touch ./utilsx_data/.verifier
-echo "$MASTERKEY" | openssl enc -aes-256-cbc -salt -out ./utilsx_data/.masterkey.enc
+echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -out ./utilsx_data/.masterkey.enc
 fi
 # Muestra la lista de opciones
 echo " "
