@@ -508,7 +508,7 @@ while true; do
    prompt="$prompttext"
   fi
   # Define el read principal y el historial de mensajes
-  read -e -p $'\e[32m '"$prompt"$'\e[0m ' primeraentrada
+  read -e -p $'\e[32m'"$prompt"$'\e[0m ' primeraentrada
   entradafinal=$(echo "$primeraentrada" | tr '[:upper:]' '[:lower:]')
   echo "$primeraentrada" >> $HISTFILE
   history -s "$primeraentrada"
