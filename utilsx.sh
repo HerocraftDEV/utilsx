@@ -48,8 +48,8 @@ if [ -z "$USERNAME" ]; then
   source "$CONFIG_FILE"
   echo "¡Bienvenido, $USERNAME! Ahora estás en el prompt de UtilsX $ver."
 else
-  echo "UtilsX $ver | $(date)"
-  echo "¡Hola de nuevo, $USERNAME!"
+  echo -e "\e[33mUtilsX $ver\e[0m |\e[34m $(date)\e[0m"
+  echo -e "¡Hola de nuevo,$USERNAME!"
 fi
 
 echo "Para ver la lista de utilidades, escriba HELP"
@@ -180,7 +180,7 @@ if [ -e "$PROGRAMPATH/utilsx_data/.verifier" ]; then
 :
 else
 touch ./utilsx_data/.verifier
-read -p "Escriba su clave: " USERPASS
+read -p "Elija su clave de descifrado: " USERPASS
 MASTERKEY=$(openssl rand -base64 32) 
 echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -salt -iter 200000 -out ./utilsx_data/.masterkey.enc -pass pass:"$USERPASS"
 fi
@@ -507,7 +507,7 @@ while true; do
    prompt="$prompttext"
   fi
   # Define el read principal y el historial de mensajes
-  read -e -p "$prompt" primeraentrada
+  read -e -p $'\e[32m '"$prompt"$'\e[0m ' primeraentrada
   entradafinal=$(echo "$primeraentrada" | tr '[:upper:]' '[:lower:]')
   echo "$primeraentrada" >> $HISTFILE
   history -s "$primeraentrada"
