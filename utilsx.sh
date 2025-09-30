@@ -150,7 +150,7 @@ echo " "
 
 # Función para añadir una contraseña
 add_password() {
-openssl enc -aes-256-cbc -d -in  "$PASSWORD_FILE" -pass pass:"$MASTERKEY" > temp.txt 2>/dev/null || touch temp.txt
+openssl enc -aes-256-cbc -pbkdf2 -d -iter 200000 -salt -in "$PASSWORD_FILE" -pass pass:"$MASTERKEY" > temp.txt 2>/dev/null || touch temp.txt
 read -p "Nombre: " service
 read -s -p "Contraseña: " password
 echo " "
@@ -167,7 +167,8 @@ view_passwords(){
 read -s -p "Ingresa tu clave de descifrado: " key
 echo " "
 echo " "
-openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -d -in "$PASSWORD_FILE" -pass pass:"$MASTERKEY"
+MASTERKEYVERIFY=$(openssl enc -aes-256-cbc -pbkdf2 -d -salt -iter 200000 -in $PROGRAMPATH/utilsx_data/.masterkey.enc -pass pass:"$key")
+openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -d -in "$PASSWORD_FILE" -pass pass:"$MASTERKEYVERIFY"
 echo " "
 }
 
@@ -175,7 +176,7 @@ echo " "
 pass_manager() {
 dontclosepassmanager=true
 # Verifica si es la primera vez que entras al PASSMANAGER, si es así crea una nueva MASTERKEY
-if [ -e "./utilsx_data/.verifier" ]; then
+if [ -e "$PROGRAMPATH/utilsx_data/.verifier" ]; then
 :
 else
 touch ./utilsx_data/.verifier
@@ -268,7 +269,7 @@ done
 
 # Función para cambiar las API keys en el archivo de configuración, parte del comando CONFIG
 setapikeys() {
-read -s -p "Escriba su API key de OpenWeatherMap: " newowmapikey
+read -e -p "Escriba su API key de OpenWeatherMap: " newowmapikey
 if grep -q "^OPENWEATHERMAP_API_KEY=" "$CONFIG_FILE"; then
 sed -i "s/^OPENWEATHERMAP_API_KEY=.*/OPENWEATHERMAP_API_KEY=\"$newowmapikey\"/" "$CONFIG_FILE"
 else
@@ -526,6 +527,10 @@ while true; do
     ;;
   date)
     echo "Fecha: $(date)"
+    echo " "
+    ;;
+  saludo)
+    echo "¡Hola, $USERNAME!"
     echo " "
     ;;
   exit)
