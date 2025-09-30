@@ -10,6 +10,7 @@ NOTES_FILE="$PROGRAMPATH/utilsx_data/NOTES.txt"
 PASSWORD_FILE="$PROGRAMPATH/utilsx_data/.passwords.enc"
 DATA_PATH="$PROGRAMPATH/utilsx_data"
 HISTFILE="$PROGRAMPATH/utilsx_data/.hist"
+MAXLINES=50
 
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
@@ -511,6 +512,10 @@ while true; do
   entradafinal=$(echo "$primeraentrada" | tr '[:upper:]' '[:lower:]')
   echo "$primeraentrada" >> $HISTFILE
   history -s "$primeraentrada"
+  LINEAS=$(wc -l < "$HISTFILE")
+  if [ "$LINEAS" -gt "$MAXLINES" ]; then
+  tail -n "$MAXLINES" "$HISTFILE" > "$HISTFILE.tmp" && mv "$HISTFILE.tmp" "$HISTFILE"
+  fi
   # Aquí se define lo que hace cada comando
   case "$entradafinal" in 
   clima)
