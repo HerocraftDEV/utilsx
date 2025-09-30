@@ -180,7 +180,9 @@ if [ -e "$PROGRAMPATH/utilsx_data/.verifier" ]; then
 :
 else
 touch ./utilsx_data/.verifier
-echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -out ./utilsx_data/.masterkey.enc
+read -p "Escriba su clave: " USERPASS
+MASTERKEY=$(openssl rand -base64 32) 
+echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -salt -iter 200000 -out ./utilsx_data/.masterkey.enc -pass pass:"$USERPASS"
 fi
 # Muestra la lista de opciones
 echo " "
