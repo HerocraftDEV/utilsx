@@ -13,6 +13,7 @@ DATA_PATH="$PROGRAMPATH/utilsx_data"
 HISTFILE="$PROGRAMPATH/utilsx_data/.hist"
 MAXLINES=50
 COMMANDCOUNT=0
+PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
 
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
@@ -379,12 +380,13 @@ echo "12) searchfiles = Buscar archivos"
 echo "13) ver = Muestra la versión del programa"
 echo "14) showmydir = Cambia el texto del prompt al directorio actual"
 echo "15) dontshowmydir = Cambia el texto del prompt al texto normal"
-echo "16) help = Muestra esta ayuda"
-echo "17) exit = Salir"
-echo "18) dependencias = Muestra la lista de programas necesarios para una experiencia completa"
-echo "19) config = Configuración del programa"
-echo "20) reload = Recarga el programa"
-echo "21) El resto de comandos de bash son compatibles"
+echo "16) plugins (load/view) = Ver o cargar plugins"
+echo "17) help = Muestra esta ayuda"
+echo "18) exit = Salir"
+echo "19) dependencias = Muestra la lista de programas necesarios para una experiencia completa"
+echo "20) config = Configuración del programa"
+echo "21) reload = Recarga el programa"
+echo "22) El resto de comandos de bash son compatibles"
 echo " "
 }
 
@@ -404,6 +406,46 @@ echo " "
 setprompttext() {
 read -p "Seleccione el texto del prompt: " selec
 prompttext="$selec > "
+}
+
+# Función para plugins
+plugins() {
+
+if [ -d "$PLUGINS_PATH" ]; then
+:
+else
+mkdir "$PLUGINS_PATH"
+echo -e "\e[32mSe creará una nueva carpeta de plugins...\e[0m"
+fi
+
+PLUGIN_FILE="$PLUGINS_PATH/$2.sh"
+case "$1" in
+  load)
+  if [ -f "$PLUGIN_FILE" ]; then
+  source "$PLUGIN_FILE"
+  echo -e "\e[32mPlugin cargado\e[0m"
+  else
+  echo -e "\e[33mPlugin no encontrado\e[0m"
+  fi
+  ;;
+  view)
+  ls $PLUGINS_PATH
+  ;;
+  info)
+  nombre="$2"
+  if [ ! -f "$PLUGIN_FILE" ]; then
+    echo "Plugin $nombre no encontrado"
+  fi
+  source "$PLUGIN_FILE"
+  echo "Nombre: ${pluginname:-$nombre}"
+  echo "Autor: ${pluginauthor:-Desconocido}"
+  echo "Descripción: ${plugindesc:-N/A}"
+  echo "Versión: ${pluginver:-N/A}"
+  ;;
+  *)
+  echo "Uso: plugins (load/view) (nombre del plugin si es necesario)"
+  ;;
+esac
 }
 
 # Función para mostrar las dependencias, comando DEPENDENCIAS
@@ -468,7 +510,7 @@ echo "QR generado como ${qrname}.png"
 echo " "
 }
 
-stat() {
+gxstat() {
 echo "Información de esta sesión de UtilsX"
 echo "Versión: $longver"
 echo "Comandos ejecutados: $COMMANDCOUNT"
@@ -566,8 +608,8 @@ while true; do
    notes)
      notes
      ;;
-  stat)
-     stat
+  gxstat)
+     gxstat
      ;;
   passmanager)
     pass_manager
@@ -577,6 +619,10 @@ while true; do
     ;;    
   timer)
     timer
+    ;;
+  plugins*)
+    parametro="${primeraentrada#plugins }"
+    plugins $parametro
     ;;
   passgen)
     random_pass_gen
