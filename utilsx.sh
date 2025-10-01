@@ -15,6 +15,11 @@ MAXLINES=50
 COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
 
+# Carga de plugins
+for plugin in $PROGRAMPATH/utilsx_plugins/*.sh; do
+   source "$plugin"
+done
+
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
 :
@@ -188,6 +193,7 @@ touch ./utilsx_data/.verifier
 read -p "Elija su clave de descifrado: " USERPASS
 MASTERKEY=$(openssl rand -base64 32) 
 echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -salt -iter 200000 -out ./utilsx_data/.masterkey.enc -pass pass:"$USERPASS"
+USERPASS="0"
 fi
 # Muestra la lista de opciones
 echo " "
