@@ -1,6 +1,6 @@
 #!/bin/bash
 ver="v1.5"
-longver="v1.5.2"
+longver="v1.5.3"
 
 # Definiendo rutas de los archivos
 PROGRAMPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
