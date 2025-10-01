@@ -1,5 +1,6 @@
 #!/bin/bash
 ver="v1.5"
+longver="v1.5.2"
 
 # Definiendo rutas de los archivos
 PROGRAMPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,18 +12,20 @@ PASSWORD_FILE="$PROGRAMPATH/utilsx_data/.passwords.enc"
 DATA_PATH="$PROGRAMPATH/utilsx_data"
 HISTFILE="$PROGRAMPATH/utilsx_data/.hist"
 MAXLINES=50
+COMMANDCOUNT=0
 
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
 :
 else
-echo "Se creará un nuevo directorio para datos del programa..."
+echo -e "\e[32mSe creará un nuevo directorio para datos del programa...\e[0m"
+echo -e "\e[32mVerificando dependencias...\e[0m"
 mkdir utilsx_data
 fi
 touch "$HISTFILE"
 checkdep() {
 if ! command -v "$1" >/dev/null 2>&1; then
-echo "Falta '$1'. Para más información use el comando DEPENDENCIAS"
+echo -e "\e[31mFalta '$1'.\e[0m"
 fi
 }
 
@@ -36,7 +39,7 @@ checkdep openssl
 if [ -f "$CONFIG_FILE" ]; then
    source "$CONFIG_FILE"
 else
-  echo "Se creará un archivo de configuración..."
+  echo -e "\e[32mSe creará un archivo de configuración...\e[0m"
   echo "Puedes editar tus configuraciones con el comando CONFIG"
   touch "$CONFIG_FILE"
 fi
@@ -47,7 +50,7 @@ if [ -z "$USERNAME" ]; then
   read -p "Escriba su nombre... " USERNAME
   echo "USERNAME=\"$USERNAME\"" >> "$CONFIG_FILE"
   source "$CONFIG_FILE"
-  echo "¡Bienvenido, $USERNAME! Ahora estás en el prompt de UtilsX $ver."
+  echo -e "¡Bienvenido, \e[32m$USERNAME!\e[0m Ahora estás en el prompt de \e[33mUtilsX $ver. \e[0m"
 else
   echo -e "\e[33mUtilsX $ver\e[0m |\e[34m $(date)\e[0m"
   echo -e "¡Hola de nuevo,$USERNAME!"
@@ -465,6 +468,11 @@ echo "QR generado como ${qrname}.png"
 echo " "
 }
 
+stat() {
+echo "Información de esta sesión de UtilsX"
+echo "Versión: $longver"
+echo "Comandos ejecutados: $COMMANDCOUNT"
+}
 
 # Función del comando CONFIG
 configurar() {
@@ -508,8 +516,12 @@ while true; do
    prompt="$prompttext"
   fi
   # Define el read principal y el historial de mensajes
-  read -e -p $'\e[32m'"$prompt"$'\e[0m ' primeraentrada
+  read -e -p $'\e[32m'"$prompt"$'\e[0m' primeraentrada
+  COMMANDCOUNT=$((COMMANDCOUNT +1))
   entradafinal=$(echo "$primeraentrada" | tr '[:upper:]' '[:lower:]')
+  if [ -z "$entradafinal" ]; then
+    continue
+  fi
   echo "$primeraentrada" >> $HISTFILE
   history -s "$primeraentrada"
   LINEAS=$(wc -l < "$HISTFILE")
@@ -548,11 +560,14 @@ while true; do
     todo
     ;;
   reload)
-    ./utilsx.sh
+    $PROGRAMPATH/utilsx.sh
     break
     ;;
    notes)
      notes
+     ;;
+  stat)
+     stat
      ;;
   passmanager)
     pass_manager
@@ -574,7 +589,7 @@ while true; do
     findmyfiles 
     ;;
   ver)
-    echo "UtilsX $ver"
+    echo -e "\e[36mUtilsX \e[33m$longver \e[0m"
     echo " "
     ;;
   showmydir)
