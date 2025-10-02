@@ -16,9 +16,22 @@ COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
 
 # Carga de plugins
-for plugin in $PROGRAMPATH/utilsx_plugins/*.sh; do
-   source "$plugin"
-done
+loadplugins() {
+shopt -s nullglob
+local plugins=("$PLUGINS_PATH"/*.sh)
+shopt -u nullglob
+if [ -d "$PLUGINS_PATH" ]; then
+ if [ ${#plugins[@]} -eq 0 ]; then
+ :
+ else
+ for plugin in "${plugins[@]}"; do
+    source "$plugin"
+ done
+ fi
+else
+:
+fi
+}
 
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
@@ -40,6 +53,8 @@ checkdep jq
 checkdep bc
 checkdep qrencode
 checkdep openssl
+
+loadplugins
 
 # Verifica si existe el archivo de configuración
 if [ -f "$CONFIG_FILE" ]; then
@@ -414,16 +429,28 @@ read -p "Seleccione el texto del prompt: " selec
 prompttext="$selec > "
 }
 
-# Función para plugins
-plugins() {
+# Instalar plugins desde un repositorio
+installplugin() {
+local pluginname="$1"
+local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx-plugins/main/${pluginname}.sh"
+echo -e "\e[1;34mBuscando el plugin...\e[0m"
+if curl --head --silent --fail "$repo_url" > /dev/null; then
+curl -fsSL "$repo_url" -o "$PROGRAMPATH/utilsx_plugins/${pluginname}.sh"
+echo -e "\e[1;32mEl plugin ha sido descargado correctamente. Puedes cargarlo con PLUGINS LOAD.\e[0m"
+else
+echo -e "\e[1;31mEl plugin no se ha podido descargar correctamente.\e[0m"
+fi
+echo " "
+}
 
+# Función para plugins
+plugin() {
 if [ -d "$PLUGINS_PATH" ]; then
 :
 else
 mkdir "$PLUGINS_PATH"
 echo -e "\e[32mSe creará una nueva carpeta de plugins...\e[0m"
 fi
-
 PLUGIN_FILE="$PLUGINS_PATH/$2.sh"
 case "$1" in
   load)
@@ -448,8 +475,12 @@ case "$1" in
   echo "Descripción: ${plugindesc:-N/A}"
   echo "Versión: ${pluginver:-N/A}"
   ;;
+  install*)
+  nombre="$2"
+  installplugin "$nombre"
+  ;;
   *)
-  echo "Uso: plugins (load/view) (nombre del plugin si es necesario)"
+  echo "Uso: plugins (load/view/install) (nombre del plugin si es necesario)"
   ;;
 esac
 }
@@ -626,9 +657,9 @@ while true; do
   timer)
     timer
     ;;
-  plugins*)
+  plugin*)
     parametro="${primeraentrada#plugins }"
-    plugins $parametro
+    plugin $parametro
     ;;
   passgen)
     random_pass_gen
