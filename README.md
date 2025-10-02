@@ -42,6 +42,6 @@ El programa creará los archivos necesarios dentro de ese directorio según las 
 ##### Plugins
 
 Los plugins son scripts .sh cuyas funciones se pueden ejecutar como comandos de bash dentro de UtilsX.
-Se guardan en la carpeta utilsx_plugins y pueden ser añadidos o eliminados manualmente por el usuario.
+Se guardan en la carpeta utilsx_plugins y pueden ser instalados desde el repositorio oficial con PLUGINS INSTALL <nombre> o ser añadidos manualmente por el usuario en utilsx_plugins.
 
  
