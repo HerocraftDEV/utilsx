@@ -50,7 +50,6 @@ fi
 
 # Verifica las dependencias
 checkdep jq
-checkdep bc
 checkdep qrencode
 checkdep openssl
 
@@ -205,7 +204,7 @@ dontclosepassmanager=true
 if [ -e "$PROGRAMPATH/utilsx_data/.verifier" ]; then
 :
 else
-touch ./utilsx_data/.verifier
+touch $PROGRAMPATH/utilsx_data/.verifier
 read -p "Elija su clave de descifrado: " USERPASS
 MASTERKEY=$(openssl rand -base64 32) 
 echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -salt -iter 200000 -out ./utilsx_data/.masterkey.enc -pass pass:"$USERPASS"
@@ -429,13 +428,16 @@ read -p "Seleccione el texto del prompt: " selec
 prompttext="$selec > "
 }
 
+# Eliminar un plugin
 removeplugin() {
-local pluginname="$1"
-if [ -e $PLUGINS_PATH/${pluginname}.sh ]; then
-rm "$PLUGINS_PATH/${pluginname}.sh"
-echo "El plugin ha sido removido de su sistema."
+local pluginnametoremove="$1"
+if [ -e $PLUGINS_PATH/${pluginnametoremove}.sh ]; then
+rm "$PLUGINS_PATH/${pluginnametoremove}.sh"
+echo -e "\e[1;34mEl plugin ha sido removido de su sistema.\e[0m"
+echo " "
 else
-echo "No se encontró el plugin $pluginname"
+echo -e "\e[33mNo se encontró el plugin $pluginname\e[0m"
+echo " "
 fi
 }
 
@@ -444,13 +446,20 @@ installplugin() {
 local pluginnametoinstall="$1"
 local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx-plugins/main/${pluginnametoinstall}.sh"
 echo -e "\e[1;34mBuscando el plugin...\e[0m"
+
+# Descarga el plugin en el directorio de plugins
 if curl --head --silent --fail "$repo_url" > /dev/null; then
 curl -fsSL "$repo_url" -o "$PROGRAMPATH/utilsx_plugins/${pluginnametoinstall}.sh"
 source "$PLUGINS_PATH/${pluginnametoinstall}.sh"
 echo -e "\e[1;32mEl plugin ha sido descargado correctamente. \e[0m"
+
+# Verifica si existe una lista de dependencias para este plugin
 if grep -q "^plugindep=" "$PLUGINS_PATH/${pluginnametoinstall}.sh"; then
 echo -e "\e[33m¡Advertencia! El plugin requiere las siguientes dependencias para su correcto funcionamiento: \e[0m"
-echo -e "\e[33m$plugindep\e[0m"
+for dep in ${plugindep[@]}; do
+echo -e "\e[33m$dep\e[0m"
+done
+echo -e "\e[33mPuedes verificar su disponibilidad con el comando plugins depcheck $pluginnametoinstall"
 fi
 
 else
@@ -459,8 +468,29 @@ fi
 echo " "
 }
 
+# Verificar las dependencias instaladas de un plugin 
+plugindepcheck() {
+local pluginnametocheck="$1"
+echo -e "\e[32mVerificando dependencias faltantes para el plugin ${pluginnametocheck}...\e[0m"
+if [ -e $PLUGINS_PATH/${pluginnametocheck}.sh ]; then
+ source "$PLUGINS_PATH/${pluginnametocheck}.sh"
+ if grep -q "^plugindep=" "$PLUGINS_PATH/${pluginnametocheck}.sh"; then
+  for dep in ${plugindep[@]}; do
+  checkdep "$dep"
+  done
+ else
+ echo -e "\e[33mEl programa no tiene una lista de dependencias.\e[0m"
+ fi
+else
+echo -e "\e[33mPlugin no encontrado.\e[0m"
+fi
+echo " "
+}
+
+
 # Función para plugins
 plugin() {
+# Verifica si existe la carpeta de plugins
 if [ -d "$PLUGINS_PATH" ]; then
 :
 else
@@ -468,6 +498,7 @@ mkdir "$PLUGINS_PATH"
 echo -e "\e[32mSe creará una nueva carpeta de plugins...\e[0m"
 fi
 PLUGIN_FILE="$PLUGINS_PATH/$2.sh"
+# Define cada parámetro
 case "$1" in
   load)
   if [ -f "$PLUGIN_FILE" ]; then
@@ -499,8 +530,16 @@ case "$1" in
   nombre="$2"
   removeplugin "$nombre"
   ;;
-  *)
-  echo "Uso: plugins (load/view/install) (nombre del plugin si es necesario)"
+  depcheck*)
+  nombre="$2"
+  plugindepcheck "$nombre"
+  ;;
+  help)
+  echo "Lista de parámetros: "
+  echo "install <nombre> - Instala un plugin desde el repositorio oficial"
+  echo "remove <nombre> - Elimina un plugin de tu dispositivo"
+  echo "view - Muestra la lista de plugins instalados"
+  echo "info <nombre> - Muestra la información de un plugin"
   ;;
 esac
 }
@@ -508,10 +547,9 @@ esac
 # Función para mostrar las dependencias, comando DEPENDENCIAS
 dependencias() {
 echo "Lista de dependencias:"
-echo "1) bc - Comando CALC"
-echo "2) jq - Comando CLIMA"
-echo "3) qrencode - Comando QRGEN"
-echo "4) openssl - Comando PASSMANAGER"
+echo "1) jq - Comando CLIMA"
+echo "2) qrencode - Comando QRGEN"
+echo "3) openssl - Comando PASSMANAGER"
 echo " "
 }
 
@@ -608,12 +646,14 @@ done
 
 # Bucle principal en donde se definen los comandos
 while true; do
+
   # Define el texto del prompt según la variable showdir
   if [ "$showdir" = "true" ]; then
    prompt="$(pwd) > "
   else
    prompt="$prompttext"
   fi
+  
   # Define el read principal y el historial de mensajes
   read -e -p $'\e[32m'"$prompt"$'\e[0m' primeraentrada
   COMMANDCOUNT=$((COMMANDCOUNT +1))
@@ -621,12 +661,17 @@ while true; do
   if [ -z "$entradafinal" ]; then
     continue
   fi
+
+  # Guarda la entrada en el historial
   echo "$primeraentrada" >> $HISTFILE
   history -s "$primeraentrada"
+  
+  # Controla la longitud del historial
   LINEAS=$(wc -l < "$HISTFILE")
   if [ "$LINEAS" -gt "$MAXLINES" ]; then
   tail -n "$MAXLINES" "$HISTFILE" > "$HISTFILE.tmp" && mv "$HISTFILE.tmp" "$HISTFILE"
   fi
+  
   # Aquí se define lo que hace cada comando
   case "$entradafinal" in 
   clima)
@@ -677,8 +722,12 @@ while true; do
   timer)
     timer
     ;;
-  plugin*)
+  plugins*)
     parametro="${primeraentrada#plugins }"
+    plugin $parametro
+    ;;
+  plugin*)
+    parametro="${primeraentrada#plugin }"
     plugin $parametro
     ;;
   passgen)
