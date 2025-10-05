@@ -54,6 +54,7 @@ checkdep bc
 checkdep qrencode
 checkdep openssl
 
+# Carga de plugins
 loadplugins
 
 # Verifica si existe el archivo de configuración
@@ -73,8 +74,8 @@ if [ -z "$USERNAME" ]; then
   source "$CONFIG_FILE"
   echo -e "¡Bienvenido, \e[32m$USERNAME!\e[0m Ahora estás en el prompt de \e[33mUtilsX $ver. \e[0m"
 else
-  echo -e "\e[33mUtilsX $ver\e[0m |\e[34m $(date)\e[0m"
-  echo -e "¡Hola de nuevo,$USERNAME!"
+  echo -e "\e[33mUtilsX $ver\e[0m |\e[1;34m $(date)\e[0m"
+  echo -e "¡Hola de nuevo, $USERNAME!"
 fi
 
 echo "Para ver la lista de utilidades, escriba HELP"
@@ -386,28 +387,27 @@ done
 # Muestra toda la lista de comandos
 ayuda() {
 echo "Lista de utilidades y comandos:"
-echo "1) calc = Calculadora simple"
-echo "2) clima = Ver el clima"
-echo "3) passgen = Generador de contraseñas"
-echo "4) todo = Lista de tareas"
-echo "5) qrgen = Generador de códigos QR"
-echo "6) passmanager = Administrador de contraseñas utilizando cifrado"
-echo "7) timer (tiempo) = Temporizador"
-echo "8) sysinfo = Muestra información del sistema"
-echo "9) wiki (nombre) = Busca una página en wikipedia y muestra el resumen"
-echo "10) agenda = Agenda"
-echo "11) notes = Notas rápidas"
-echo "12) searchfiles = Buscar archivos"
-echo "13) ver = Muestra la versión del programa"
-echo "14) showmydir = Cambia el texto del prompt al directorio actual"
-echo "15) dontshowmydir = Cambia el texto del prompt al texto normal"
-echo "16) plugins (load/view) = Ver o cargar plugins"
-echo "17) help = Muestra esta ayuda"
-echo "18) exit = Salir"
-echo "19) dependencias = Muestra la lista de programas necesarios para una experiencia completa"
-echo "20) config = Configuración del programa"
-echo "21) reload = Recarga el programa"
-echo "22) El resto de comandos de bash son compatibles"
+echo "1) clima = Ver el clima"
+echo "2) passgen = Generador de contraseñas"
+echo "3) todo = Lista de tareas"
+echo "4) qrgen = Generador de códigos QR"
+echo "5) passmanager = Administrador de contraseñas utilizando cifrado"
+echo "6) timer (tiempo) = Temporizador"
+echo "7) sysinfo = Muestra información del sistema"
+echo "8) wiki (nombre) = Busca una página en wikipedia y muestra el resumen"
+echo "9) agenda = Agenda"
+echo "10) notes = Notas rápidas"
+echo "11) searchfiles = Buscar archivos"
+echo "12) ver = Muestra la versión del programa"
+echo "13) showmydir = Cambia el texto del prompt al directorio actual"
+echo "14) dontshowmydir = Cambia el texto del prompt al texto normal"
+echo "15) plugins (load/view) = Ver o cargar plugins"
+echo "16) help = Muestra esta ayuda"
+echo "17) exit = Salir"
+echo "18) dependencias = Muestra la lista de programas necesarios para una experiencia completa"
+echo "19) config = Configuración del programa"
+echo "20) reload = Recarga el programa"
+echo "21) El resto de comandos de bash son compatibles"
 echo " "
 }
 
@@ -429,14 +429,30 @@ read -p "Seleccione el texto del prompt: " selec
 prompttext="$selec > "
 }
 
+removeplugin() {
+local pluginname="$1"
+if [ -e $PLUGINS_PATH/${pluginname}.sh ]; then
+rm "$PLUGINS_PATH/${pluginname}.sh"
+echo "El plugin ha sido removido de su sistema."
+else
+echo "No se encontró el plugin $pluginname"
+fi
+}
+
 # Instalar plugins desde un repositorio
 installplugin() {
-local pluginname="$1"
-local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx-plugins/main/${pluginname}.sh"
+local pluginnametoinstall="$1"
+local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx-plugins/main/${pluginnametoinstall}.sh"
 echo -e "\e[1;34mBuscando el plugin...\e[0m"
 if curl --head --silent --fail "$repo_url" > /dev/null; then
-curl -fsSL "$repo_url" -o "$PROGRAMPATH/utilsx_plugins/${pluginname}.sh"
-echo -e "\e[1;32mEl plugin ha sido descargado correctamente. Puedes cargarlo con PLUGINS LOAD.\e[0m"
+curl -fsSL "$repo_url" -o "$PROGRAMPATH/utilsx_plugins/${pluginnametoinstall}.sh"
+source "$PLUGINS_PATH/${pluginnametoinstall}.sh"
+echo -e "\e[1;32mEl plugin ha sido descargado correctamente. \e[0m"
+if grep -q "^plugindep=" "$PLUGINS_PATH/${pluginnametoinstall}.sh"; then
+echo -e "\e[33m¡Advertencia! El plugin requiere las siguientes dependencias para su correcto funcionamiento: \e[0m"
+echo -e "\e[33m$plugindep\e[0m"
+fi
+
 else
 echo -e "\e[1;31mEl plugin no se ha podido descargar correctamente.\e[0m"
 fi
@@ -478,6 +494,10 @@ case "$1" in
   install*)
   nombre="$2"
   installplugin "$nombre"
+  ;;
+  remove*)
+  nombre="$2"
+  removeplugin "$nombre"
   ;;
   *)
   echo "Uso: plugins (load/view/install) (nombre del plugin si es necesario)"
