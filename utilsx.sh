@@ -15,6 +15,7 @@ HISTFILE="$PROGRAMPATH/utilsx_data/.hist"
 MAXLINES=50
 COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
+BACKUPS_PATH="$HOME/.utilsx_backups"
 
 # Carga de plugins
 loadplugins() {
@@ -33,6 +34,29 @@ else
 :
 fi
 }
+
+# Función de temporizador simple, comando TIMER
+timer() {
+sleeptime=$1
+while [ $sleeptime -gt 0 ]; do
+  echo -ne "Tiempo restante: $sleeptime segundos\r"
+  sleep 1
+  ((sleeptime--))
+done
+echo -e "\n✅ Tiempo terminado"
+echo " "
+}
+
+# Temporizador silencioso
+silenttimer() {
+sleeptime=$1
+while [ $sleeptime -gt 0 ]; do
+  echo -ne -e "\e[33mTiempo restante: $sleeptime segundos\e[0m \r"
+  sleep 1
+  ((sleeptime--))
+done
+}
+
 
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
@@ -130,6 +154,72 @@ echo "Contraseña generada: "
 < /dev/urandom tr -dc 'A-Za-z0-9!@#$%&*()_=/\[]' | head -c $LONGITUD
 echo
 echo " "
+}
+
+# Backup completo
+completebackup() {
+local BACKUP_PATH="$BACKUPS_PATH/$(date +'%Y-%m-%d_%H-%M-%S')"
+mkdir -p $BACKUP_PATH
+mkdir -p $BACKUP_PATH/utilsx_plugins
+mkdir -p $BACKUP_PATH/utilsx_data
+cp -r $PROGRAMPATH/utilsx_plugins $BACKUP_PATH/
+cp -r $PROGRAMPATH/utilsx_data $BACKUP_PATH/
+cp -r $PROGRAMPATH/utilsx.sh $BACKUP_PATH/utilsx.sh
+echo -e "\e[32mHecho. \e[0m"
+}
+
+# Restaurar el programa a un punto anterior
+restoreprogram() {
+echo -e "\e[33mLista de copias para restaurar: \e[0m"
+ls $BACKUPS_PATH
+read -p "Elija una opción: " restoreselec
+local BACKUP_PATH="$BACKUPS_PATH/$restoreselec"
+if [ -d $BACKUP_PATH ]; then
+rm -r $PROGRAMPATH/utilsx_data
+rm -r $PROGRAMPATH/utilsx_plugins
+rm -r $PROGRAMPATH/utilsx.sh
+echo -e "\e[32mRestaurando el programa..."
+cp $BACKUP_PATH/utilsx.sh $PROGRAMPATH/utilsx.sh
+sleep 1
+echo -e "Restaurando datos..."
+cp -r $BACKUP_PATH/utilsx_data $PROGRAMPATH/
+sleep 1
+echo -e "Restaurando plugins...\e[0m"
+cp -r $BACKUP_PATH/utilsx_plugins $PROGRAMPATH/
+sleep 1
+echo -e "\e[33mCompletado. El programa se reiniciará para terminar los cambios.\e[0m"
+silenttimer 3
+echo " "
+$PROGRAMPATH/utilsx.sh
+break
+else
+echo -e "\e[33mNo se encontró la copia de seguridad\e[0m"
+echo " "
+fi
+}
+
+backupmenu() {
+dontquitbackupmenu=true
+if [ -e $BACKUPS_PATH ]; then
+:
+else
+mkdir $BACKUPS_PATH
+echo -e "\e[32mSe creará una nueva carpeta de copias de seguridad...\e[0m"
+echo " "
+fi
+echo -e "\e[1;34mCreación de copias de seguridad de UtilsX\e[0m"
+echo -e "\e[33mElija una opción para continuar: \e[0m"
+echo "1) Crear una copia del programa"
+echo "2) Volver a un punto anterior"
+echo "3) Salir"
+while $dontquitbackupmenu; do
+read -p $'\e[1;33m'"> "$'\e[0m' BACKUPSELEC
+case "$BACKUPSELEC" in
+  1) completebackup ;;
+  2) restoreprogram ;;
+  3) dontquitbackupmenu=false ;;
+esac
+done
 }
 
 # Función principal del comando CLIMA
@@ -411,17 +501,6 @@ echo "21) El resto de comandos de bash son compatibles"
 echo " "
 }
 
-# Función de temporizador simple, comando TIMER
-timer() {
-sleeptime=$1
-while [ $sleeptime -gt 0 ]; do
-  echo -ne "Tiempo restante: $sleeptime segundos\r"
-  sleep 1
-  ((sleeptime--))
-done
-echo -e "\n✅ Tiempo terminado"
-echo " "
-}
 
 # Función para seleccionar el texto del prompt, parte del comando CONFIG
 setprompttext() {
@@ -469,6 +548,7 @@ fi
 echo " "
 }
 
+# Actualizar todos los plugins
 updateplugins() {
 local repo_base="https://raw.githubusercontent.com/HerocraftDEV/utilsx-plugins/main"
 for plugin in "$PLUGINS_PATH"/*.sh; do
@@ -560,6 +640,7 @@ case "$1" in
   echo "depcheck <nombre> - Verifica si están instaladas las dependencias de un plugin"
   echo " "
   ;;
+  *) echo "Escriba plugins help para más información" ;;
 esac
 }
 
@@ -644,30 +725,32 @@ fi
 configurar() {
 # Texto de ayuda
 dontquitconfig=true
-echo -e "\e[1;33mConfiguración de UtilsX\e[0m"
-echo -e "\e[1;33mSeleccione una opción para continuar..."
+echo -e "\e[1;34mConfiguración de UtilsX\e[0m"
+echo -e "\e[33mSeleccione una opción para continuar...\e[0m"
 echo -e "1) Configurar API keys"
 echo -e "2) Cambiar nombre de usuario"
 echo -e "3) Cambiar ciudad predeterminada"
 echo -e "4) Cambiar el texto del prompt"
-echo -e "5) Información de UtilsX"
-echo -e "6) Buscar actualizaciones"
-echo -e "7) Salir\e[0m"
+echo -e "5) Crear copias de seguridad del programa"
+echo -e "6) Información de UtilsX"
+echo -e "7) Buscar actualizaciones"
+echo -e "8) Salir"
 
 # Mientras la variable dontquitconfig sea true, se podrá seleccionar una de las 7 opciones
 while $dontquitconfig; do
-read -p $'\e[1;32m'"Opción > "$'\e[0m' configselec
+read -p $'\e[1;33m'"Opción > "$'\e[0m' configselec
 case $configselec in 
   1) setapikeys ;;
   2) setuser ;;
   3) setdefaultcity ;;
   4) setprompttext ;;
-  5) echo -e "\e[1;34mUtilsX versión\e[0m \e[33m$longvernv\e[0m"
+  6) echo -e "\e[1;34mUtilsX versión\e[0m \e[33m$longvernv\e[0m"
      echo -e "\e[1;33mComandos ejecutados en esta sesión: $COMMANDCOUNT \e[0m"
      echo "Copyright (C) 2025 HerocraftDEV"
      echo -e "Este software está cubierto por los términos de la licencia GPLv3.\e[0m" ;;
-  6) updateprogram ;;
-  7) dontquitconfig=false ;; 
+  5) backupmenu ;;
+  7) updateprogram ;;
+  8) dontquitconfig=false ;; 
   *) echo "Opción no válida"
      echo " " ;;
 esac
