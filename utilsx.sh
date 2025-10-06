@@ -1,6 +1,7 @@
 #!/bin/bash
 ver="v1.5"
 longver="v1.5.4"
+longvernv="1.5.4"
 
 # Definiendo rutas de los archivos
 PROGRAMPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -468,6 +469,19 @@ fi
 echo " "
 }
 
+updateplugins() {
+local repo_base="https://raw.githubusercontent.com/HerocraftDEV/utilsx-plugins/main"
+for plugin in "$PLUGINS_PATH"/*.sh; do
+local name=$(basename "$plugin" .sh)
+echo -e "\e[1;34mActualizando $name...\e[0m"
+sleep 0.1
+curl -s -o "$PLUGINS_PATH/$name.sh" "$repo_base/$name.sh" && \
+  echo -e "\e[32mHecho.\e[0m" || \
+  echo -e "\e[31mError al actualizar $name. \e[0m"
+done
+echo -e "\e[1;34mTodos los plugins han sido actualizados.\e[0m"
+}
+
 # Verificar las dependencias instaladas de un plugin 
 plugindepcheck() {
 local pluginnametocheck="$1"
@@ -530,6 +544,9 @@ case "$1" in
   nombre="$2"
   removeplugin "$nombre"
   ;;
+  update)
+  updateplugins
+  ;;
   depcheck*)
   nombre="$2"
   plugindepcheck "$nombre"
@@ -540,6 +557,8 @@ case "$1" in
   echo "remove <nombre> - Elimina un plugin de tu dispositivo"
   echo "view - Muestra la lista de plugins instalados"
   echo "info <nombre> - Muestra la información de un plugin"
+  echo "depcheck <nombre> - Verifica si están instaladas las dependencias de un plugin"
+  echo " "
   ;;
 esac
 }
@@ -607,39 +626,50 @@ echo " "
 
 gxstat() {
 echo "Información de esta sesión de UtilsX"
-echo "Versión: $longver"
+echo "Versión: $longvernv"
 echo "Comandos ejecutados: $COMMANDCOUNT"
+}
+
+updateprogram() {
+local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx/refs/heads/master/utilsx.sh"
+echo -e "\e[1;34mActualizando UtilsX...\e[0m"
+if curl -s "$repo_url" -o "$0"; then
+echo -e "\e[32mUtilsX actualizado. Reinicie el programa con RELOAD para completar los cambios\e[0m"
+else
+echo -e "\e[31mError al actualizar UtilsX.\e[0m"
+fi
 }
 
 # Función del comando CONFIG
 configurar() {
 # Texto de ayuda
 dontquitconfig=true
-echo "Configuración de UtilsX"
-echo "Seleccione una opción para continuar..."
-echo "1) Configurar API keys"
-echo "2) Cambiar nombre de usuario"
-echo "3) Cambiar ciudad predeterminada"
-echo "4) Cambiar el texto del prompt"
-echo "5) Eliminar historial de comandos"
-echo "6) Muestra el historial de comandos"
-echo "7) Salir"
+echo -e "\e[1;33mConfiguración de UtilsX\e[0m"
+echo -e "\e[1;33mSeleccione una opción para continuar..."
+echo -e "1) Configurar API keys"
+echo -e "2) Cambiar nombre de usuario"
+echo -e "3) Cambiar ciudad predeterminada"
+echo -e "4) Cambiar el texto del prompt"
+echo -e "5) Información de UtilsX"
+echo -e "6) Buscar actualizaciones"
+echo -e "7) Salir\e[0m"
 
 # Mientras la variable dontquitconfig sea true, se podrá seleccionar una de las 7 opciones
 while $dontquitconfig; do
-read -p "> " configselec
+read -p $'\e[1;32m'"Opción > "$'\e[0m' configselec
 case $configselec in 
   1) setapikeys ;;
   2) setuser ;;
   3) setdefaultcity ;;
   4) setprompttext ;;
-  5) rm $HISTFILE 
-     echo "Reinicie el programa con RELOAD para completar los cambios"
-     echo " " ;;
-  6) cat "$HISTFILE"
-     echo " " ;;
+  5) echo -e "\e[1;34mUtilsX versión\e[0m \e[33m$longvernv\e[0m"
+     echo -e "\e[1;33mComandos ejecutados en esta sesión: $COMMANDCOUNT \e[0m"
+     echo "Copyright (C) 2025 HerocraftDEV"
+     echo -e "Este software está cubierto por los términos de la licencia GPLv3.\e[0m" ;;
+  6) updateprogram ;;
   7) dontquitconfig=false ;; 
-  *) echo "Opción no válida" ;;
+  *) echo "Opción no válida"
+     echo " " ;;
 esac
 done
 }
