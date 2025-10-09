@@ -17,24 +17,6 @@ COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
 BACKUPS_PATH="$HOME/.utilsx_backups"
 
-# Carga de plugins
-loadplugins() {
-shopt -s nullglob
-local plugins=("$PLUGINS_PATH"/*.sh)
-shopt -u nullglob
-if [ -d "$PLUGINS_PATH" ]; then
- if [ ${#plugins[@]} -eq 0 ]; then
- :
- else
- for plugin in "${plugins[@]}"; do
-    source "$plugin"
- done
- fi
-else
-:
-fi
-}
-
 # Función de temporizador simple, comando TIMER
 timer() {
 sleeptime=$1
@@ -78,9 +60,6 @@ checkdep jq
 checkdep qrencode
 checkdep openssl
 
-# Carga de plugins
-loadplugins
-
 # Verifica si existe el archivo de configuración
 if [ -f "$CONFIG_FILE" ]; then
    source "$CONFIG_FILE"
@@ -90,6 +69,26 @@ else
   touch "$CONFIG_FILE"
 fi
 echo " "
+
+# Carga de plugins
+loadplugins() {
+shopt -s nullglob
+local plugins=("$PLUGINS_PATH"/*.sh)
+shopt -u nullglob
+if [ -d "$PLUGINS_PATH" ]; then
+ if [ ${#plugins[@]} -eq 0 ]; then
+ :
+ else
+ for plugin in "${plugins[@]}"; do
+    source "$plugin"
+ done
+ fi
+else
+:
+fi
+}
+
+loadplugins
 
 # Verifica si USERNAME existe o no, si no es así pregunta tu nombre y lo guarda en el archivo de configuración 
 if [ -z "$USERNAME" ]; then
@@ -156,9 +155,29 @@ echo
 echo " "
 }
 
+# Eliminar copia 
+removebackup() {
+echo "Lista de copias: "
+ls $BACKUPS_PATH
+read -p "Copia a eliminar: " backuptodelete
+if [ -d $BACKUPS_PATH/$backuptodelete ]; then
+rm -r $BACKUPS_PATH/$backuptodelete
+else
+echo "La copia elegida no existe. "
+fi
+}
+
 # Backup completo
 completebackup() {
+read -p "Nombre: " backupname
+if [ -z "$backupname" ]; then
 local BACKUP_PATH="$BACKUPS_PATH/$(date +'%Y-%m-%d_%H-%M-%S')"
+else
+local BACKUP_PATH="$BACKUPS_PATH/$backupname"
+fi
+if [ -d $BACKUP_PATH ]; then
+echo "El backup ya existe."
+else
 mkdir -p $BACKUP_PATH
 mkdir -p $BACKUP_PATH/utilsx_plugins
 mkdir -p $BACKUP_PATH/utilsx_data
@@ -166,6 +185,7 @@ cp -r $PROGRAMPATH/utilsx_plugins $BACKUP_PATH/
 cp -r $PROGRAMPATH/utilsx_data $BACKUP_PATH/
 cp -r $PROGRAMPATH/utilsx.sh $BACKUP_PATH/utilsx.sh
 echo -e "\e[32mHecho. \e[0m"
+fi
 }
 
 # Restaurar el programa a un punto anterior
@@ -198,6 +218,7 @@ echo " "
 fi
 }
 
+# Menú de backups
 backupmenu() {
 dontquitbackupmenu=true
 if [ -e $BACKUPS_PATH ]; then
@@ -211,13 +232,15 @@ echo -e "\e[1;34mCreación de copias de seguridad de UtilsX\e[0m"
 echo -e "\e[33mElija una opción para continuar: \e[0m"
 echo "1) Crear una copia del programa"
 echo "2) Volver a un punto anterior"
-echo "3) Salir"
+echo "3) Eliminar una copia"
+echo "4) Salir"
 while $dontquitbackupmenu; do
 read -p $'\e[1;33m'"> "$'\e[0m' BACKUPSELEC
 case "$BACKUPSELEC" in
   1) completebackup ;;
   2) restoreprogram ;;
-  3) dontquitbackupmenu=false ;;
+  3) removebackup ;;
+  4) dontquitbackupmenu=false ;;
 esac
 done
 }
