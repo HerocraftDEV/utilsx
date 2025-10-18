@@ -950,7 +950,7 @@ while true; do
     echo " "
     ;;
   qrgen)
-    parametro="$primeraentrada#qrgen}
+    parametro="$primeraentrada#qrgen}"
     qrgen $parametro
     ;;
   exit)
