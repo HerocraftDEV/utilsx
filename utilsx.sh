@@ -16,6 +16,7 @@ MAXLINES=50
 COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
 BACKUPS_PATH="$HOME/.utilsx_backups"
+dnmode=false
 
 # Función de temporizador simple, comando TIMER
 timer() {
@@ -95,14 +96,25 @@ if [ -z "$USERNAME" ]; then
   read -p "Escriba su nombre... " USERNAME
   echo "USERNAME=\"$USERNAME\"" >> "$CONFIG_FILE"
   source "$CONFIG_FILE"
-  echo -e "¡Bienvenido, \e[32m$USERNAME!\e[0m Ahora estás en el prompt de \e[33mUtilsX $ver. \e[0m"
+  echo -e "¡Bienvenido, \e[32m$USERNAME!\e[0m Ahora estás en \e[33mUtilsX $ver. \e[0m"
+else
+# Verifica si pusiste algún parametro
+if [ $# -gt 0 ]; then
+dnmode=true
+echo -e "\e[33mUtilsX $ver\e[0m |\e[1;34m $(date)\e[0m"
 else
   echo -e "\e[33mUtilsX $ver\e[0m |\e[1;34m $(date)\e[0m"
   echo -e "¡Hola de nuevo, $USERNAME!"
 fi
+fi
 
+# Verificación x2
+if [ $# -gt 0 ]; then
+echo "Ejecutando comando del parámetro..."
+else
 echo "Para ver la lista de utilidades, escriba HELP"
 echo " "
+fi
 
 # Define el texto del prompt, carga el historial y habilita la visibilidad del directorio actual en lugar del texto del prompt
 prompttext="UtilsX > "
@@ -178,7 +190,7 @@ fi
 if [ -d $BACKUP_PATH ]; then
 echo "El backup ya existe."
 else
-mkdir -p $BACKUP_PATH
+mkdir -p $BA7CKUP_PATH
 mkdir -p $BACKUP_PATH/utilsx_plugins
 mkdir -p $BACKUP_PATH/utilsx_data
 cp -r $PROGRAMPATH/utilsx_plugins $BACKUP_PATH/
@@ -270,11 +282,11 @@ echo " "
 
 # Función para buscar un resumen en wikipedia usando su API
 wiki() {
-local query=$(echo "$1" | sed 's/ /_/g')
+local query=$(echo "$*" | sed 's/ /_/g')
 local response=$(curl -s "https://es.wikipedia.org/api/rest_v1/page/summary/$query")
 local extract=$(echo "$response" | jq -r '.extract')
 if [[ "$extract" == "null" || -z "$extract" ]]; then
-echo "No se encontró resumen para '$1'."
+echo "No se encontró resumen para '$*'."
 else 
 echo "$extract"
 fi
@@ -455,7 +467,14 @@ echo " "
 
 # Buscar archivos, comando SEARCHFILES
 findmyfiles() {
+if [ -z "$1" ]; then
 read -p "Nombre (o parte del nombre): " name
+elif [ "$1" == "searchfiles" ]; then
+read -p "Nombre (o parte del nombre): " name
+else
+name="$1"
+fi
+echo "Resultados para $name:"
 find . -type f -name "*$name*.*"
 echo " "
 }
@@ -499,6 +518,7 @@ done
 
 # Muestra toda la lista de comandos
 ayuda() {
+if [ $dnmode == false ]; then
 echo "Lista de utilidades y comandos:"
 echo "1) clima = Ver el clima"
 echo "2) passgen = Generador de contraseñas"
@@ -510,20 +530,38 @@ echo "7) sysinfo = Muestra información del sistema"
 echo "8) wiki (nombre) = Busca una página en wikipedia y muestra el resumen"
 echo "9) agenda = Agenda"
 echo "10) notes = Notas rápidas"
-echo "11) searchfiles = Buscar archivos"
+echo "11) searchfiles (parte del nombre) = Buscar archivos"
 echo "12) ver = Muestra la versión del programa"
-echo "13) showmydir = Cambia el texto del prompt al directorio actual"
-echo "14) dontshowmydir = Cambia el texto del prompt al texto normal"
-echo "15) plugins (load/view) = Ver o cargar plugins"
-echo "16) help = Muestra esta ayuda"
-echo "17) exit = Salir"
-echo "18) dependencias = Muestra la lista de programas necesarios para una experiencia completa"
-echo "19) config = Configuración del programa"
-echo "20) reload = Recarga el programa"
-echo "21) El resto de comandos de bash son compatibles"
+echo "13) showmydir/dontshowmydir = Cambia el modo del prompt"
+echo "14) plugins = Gestionar plugins (usa plugins help para ver parámetros)"
+echo "15) help = Muestra esta ayuda"
+echo "16) exit = Salir"
+echo "17) config = Configuración del programa"
+echo "18) reload = Recarga el programa"
+echo "19) El resto de comandos de bash son compatibles"
 echo " "
+elif [ $dnmode == true ]; then
+echo "Lista de utilidades disponibles en este modo: "
+echo "1) clima = Ver el clima"
+echo "2) passgen = Generador de contraseñas"
+echo "3) todo = Lista de tareas"
+echo "4) qrgen = Generador de códigos QR"
+echo "5) passmanager = Administrador de contraseñas utilizando cifrado"
+echo "6) timer (tiempo) = Temporizador"
+echo "7) sysinfo = Muestra información del sistema"
+echo "8) wiki (nombre) = Busca una página en wikipedia y muestra el resumen"
+echo "9) agenda = Agenda"
+echo "10) notes = Notas rápidas"
+echo "11) searchfiles (parte del nombre) = Buscar archivos"
+echo "12) ver = Muestra la versión del programa"
+echo "13) plugins = Gestionar plugins (usa plugins help para ver parámetros)"
+echo "14) help = Muestra esta ayuda"
+echo "15) config = Configuración del programa"
+echo " "
+else
+:
+fi
 }
-
 
 # Función para seleccionar el texto del prompt, parte del comando CONFIG
 setprompttext() {
@@ -720,11 +758,23 @@ echo " "
 
 # Función para generar códigos QR usando qrencode, comando QRGEN
 qrgen() {
+# Verifica si pusiste algún parámetro, si es así lo usa como texto/URL para el QR
+if [ -z "$1" ]; then
 read -p "Ingrese el texto o URL para el QR: " qrinput
-read -p "Nombre del archivo de salida (sin extensión): " qrname
-qrencode -o "${qrname}.png" "$qrinput"
+else
+qrinput="$1"
+fi
+# Genera el qr con qrencode
 qrencode -t ANSIUTF8 <<< "$qrinput"
-echo "QR generado como ${qrname}.png"
+echo "QR generado."
+# Pregun
+read -p "¿Desea guardar el QR en un archivo? (S/N): " qrsaveoption
+qrcleansaveoption=$(echo "$qrsaveoption" | tr '[:upper:]' '[:lower:]')
+if [ "$qrcleansaveoption" == "s" ]; then
+read -p "Elija el nombre del archivo de salida: " qrname
+qrencode -o "${qrname}.png" "$qrinput"
+echo "QR guardado como ${qrname}.png"
+fi
 echo " "
 }
 
@@ -780,9 +830,76 @@ esac
 done
 }
 
+# Modo para ejecutar comandos sin entrar al prompt
+if [ $# -gt 0 ]; then
+dnmodeentry="$1"
+shift
+cleandnmodeentry=$(echo "$dnmodeentry" | tr '[:upper:]' '[:lower:]')
+  case "$cleandnmodeentry" in 
+  clima)
+    clima
+    ;;
+  calc)
+    calc
+    ;;
+  wiki*)
+    wiki "$@"
+    echo " "
+    ;;
+  help)
+    ayuda
+    ;;
+  saludo)
+    echo "¡Hola, $USERNAME!"
+    echo " "
+    ;;
+  todo)
+    todo
+    ;;
+  notes*)
+     notes $@
+     ;;
+  passmanager)
+    pass_manager
+    ;;    
+  timer)
+    timer
+    ;;
+  plugins*)
+    plugin $@
+    ;;
+  plugin*)
+    plugin $@
+    ;;
+  qrgen)
+    qrgen $@
+    ;;
+  passgen)
+    random_pass_gen
+    ;;
+  config)
+    configurar
+    echo " "
+    ;;
+  searchfiles*)
+    findmyfiles $@
+    ;;
+  ver)
+    echo -e "\e[36mUtilsX \e[33m$longver \e[0m"
+    echo " "
+    ;;
+  sysinfo)
+    systeminfo
+    ;;
+  *)
+    echo "Parámetro no válido"
+    ;;
+esac
+exit 0
+fi
+
 # Bucle principal en donde se definen los comandos
 while true; do
-
   # Define el texto del prompt según la variable showdir
   if [ "$showdir" = "true" ]; then
    prompt="$(pwd) > "
@@ -817,7 +934,7 @@ while true; do
     calc
     ;;
   wiki*)
-    buscar="${primeraentrada#wiki }"
+    buscar="${primeraentrada#wiki}"
     wiki "$buscar"
     echo " "
     ;;
@@ -831,6 +948,10 @@ while true; do
   saludo)
     echo "¡Hola, $USERNAME!"
     echo " "
+    ;;
+  qrgen)
+    parametro="$primeraentrada#qrgen}
+    qrgen $parametro
     ;;
   exit)
     echo "Cerrando..."
@@ -859,11 +980,11 @@ while true; do
     timer
     ;;
   plugins*)
-    parametro="${primeraentrada#plugins }"
+    parametro="${primeraentrada#plugins}"
     plugin $parametro
     ;;
   plugin*)
-    parametro="${primeraentrada#plugin }"
+    parametro="${primeraentrada#plugin}"
     plugin $parametro
     ;;
   passgen)
@@ -873,8 +994,9 @@ while true; do
     configurar
     echo " "
     ;;
-  searchfiles)
-    findmyfiles 
+  searchfiles*)
+    parametro="${primeraentrada#searchfiles}"
+    findmyfiles $parametro
     ;;
   ver)
     echo -e "\e[36mUtilsX \e[33m$longver \e[0m"
