@@ -50,14 +50,13 @@ while [ $sleeptime -gt 0 ]; do
 done
 }
 
-
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
 :
 else
 echo -e "\e[32mSe creará un nuevo directorio para datos del programa...\e[0m"
 echo -e "\e[32mVerificando dependencias...\e[0m"
-mkdir utilsx_data
+mkdir $PROGRAMPATH/utilsx_data
 fi
 touch "$HISTFILE"
 checkdep() {
@@ -699,7 +698,6 @@ fi
 echo " "
 }
 
-
 # Función para plugins
 plugin() {
 # Verifica si existe la carpeta de plugins
@@ -712,14 +710,6 @@ fi
 PLUGIN_FILE="$PLUGINS_PATH/$2.sh"
 # Define cada parámetro
 case "$1" in
-  load)
-  if [ -f "$PLUGIN_FILE" ]; then
-  source "$PLUGIN_FILE"
-  echo -e "\e[32mPlugin cargado\e[0m"
-  else
-  echo -e "\e[33mPlugin no encontrado\e[0m"
-  fi
-  ;;
   view)
   ls $PLUGINS_PATH
   ;;
@@ -1056,6 +1046,3 @@ while true; do
 esac
 parametro=""
 done
-
-
-
