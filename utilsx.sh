@@ -238,7 +238,6 @@ if [ -e $BACKUPS_PATH ]; then
 else
 mkdir $BACKUPS_PATH
 echo -e "\e[32mSe creará una nueva carpeta de copias de seguridad...\e[0m"
-echo " "
 fi
 echo -e "\e[1;34mCreación de copias de seguridad de UtilsX\e[0m"
 echo -e "\e[33mElija una opción para continuar: \e[0m"
