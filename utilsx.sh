@@ -1,9 +1,9 @@
 #!/bin/bash
 ver="v1.5"
-longver="v1.5.5"
-longvernv="1.5.5"
+longver="v1.5.6"
+longvernv="1.5.6"
 
-# Definiendo rutas de los archivos
+# Definiendo rutas de los archivos y variables
 PROGRAMPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$PROGRAMPATH/utilsx_data/utilsx.conf"
 TODO_FILE="$PROGRAMPATH/utilsx_data/TODO.txt"
@@ -17,6 +17,16 @@ COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
 BACKUPS_PATH="$PROGRAMPATH/.utilsx_backups"
 dnmode=false
+if [ ! -e $HOME/.devmodeverifier ]; then
+devmode=false
+else
+devmode=true
+fi
+if [ ! -e $HOME/.showendverifier ]; then
+showend=false
+else
+showend=true
+fi
 
 # Función de temporizador simple, comando TIMER
 timer() {
@@ -117,7 +127,11 @@ echo " "
 fi
 
 # Define el texto del prompt, carga el historial y habilita la visibilidad del directorio actual en lugar del texto del prompt
+if [ $devmode == true ]; then
+prompttext="UtilsX (devmode) > "
+else
 prompttext="UtilsX > "
+fi
 showdir=true
 history -r $HISTFILE
 
@@ -177,6 +191,21 @@ rm -r $BACKUPS_PATH/$backuptodelete
 else
 echo "La copia elegida no existe. "
 fi
+}
+
+devmode() {
+echo "El modo de desarrollador es un modo especial que borra tus configuraciones al salir y permite ver información sobre la ejecución de comandos."
+read -p "¿Desea activar el modo de desarrollador ahora? (S/N) " devmodeactivateselec
+if [ $devmodeactivateselec == S ]; then
+devmode=true
+prompttext="UtilsX (devmode) > "
+touch $HOME/.devmodeverifier
+elif [ $devmodeactivateselec == N ]; then
+devmode=false
+prompttext="UtilsX > "
+rm $HOME/.devmodeverifier
+fi
+echo -e "\e[33mHecho.\e[0m"
 }
 
 # Backup completo
@@ -260,25 +289,47 @@ done
 
 # Función principal del comando CLIMA
 clima() {
+errorcode=0
 # Verifica si USE_DEFAULT_CITY es true en el archivo de configuración, si no es asi pregunta al usuario la ciudad deseada
 if [ "$USE_DEFAULT_CITY" = "true" ]; then
 CITY="$DEFAULT_CITY"
 else 
 read -p "Elija una ciudad: " CITY
 fi
+# Verifica si configuraste tu API key
+if [ -z "$OPENWEATHERMAP_API_KEY" ]; then
+echo -e "\e[33mNo se configuró una API key."
+echo "Para obtener su API key de openweathermap, regístrese en openweathermap.org y genere una."
+echo -e "Para configurar su API key en UtilsX, use el comando config.\e[0m"
+echo " "
+errorcode=1
+fi
 # curl a la API de openweathermap
+if [ $errorcode != 1 ]; then
 API_KEY="$OPENWEATHERMAP_API_KEY"
 cityurl=$(echo "$CITY" | sed 's/ /%20/g')
 UNITS="metric"
 respuesta=$(curl -s "https://api.openweathermap.org/data/2.5/weather?q=$cityurl&appid=$API_KEY&units=$UNITS")
 temp=$(echo "$respuesta" | jq '.main.temp')
 desc=$(echo "$respuesta" | jq -r '.weather[0].description')
+fi
+# Verifica si pusiste una ciudad válida
+if [ $errorcode == 0 ]; then
+if [ "$temp" == "null" ] || [ -z "$temp" ]; then
+echo "Verifica la ciudad y vuelve a intentarlo."
+echo " "
+errorcode=2
+fi
+fi
+# Muestra la información en pantalla
+if [ $errorcode == 0 ]; then
 echo "Temperatura en $CITY: $temp ºC"
 echo "Estado: $desc"
 if [ "$USE_DEFAULT_CITY" = "true" ]; then
 echo "¿No es esta tu ciudad? Puedes editarla en las opciones de configuración."
 fi
 echo " "
+fi
 }
 
 # Función para buscar un resumen en wikipedia usando su API
@@ -390,7 +441,6 @@ if [ -f "$TODO_FILE" ]; then
   echo -e "\e[1;34m¡Bienvenido a UtilsX To-Do!\e[0m"
 else
   echo -e "\e[32mSe creará un archivo de tareas en el directorio del programa...\e[0m"
-  echo " "
   touch "$TODO_FILE"
   echo -e "\e[1;34m¡Bienvenido a UtilsX To-Do!\e[0m"
 fi
@@ -492,7 +542,6 @@ if [ -f "$AGENDA_FILE" ]; then
   echo -e "\e[1;34m¡Bienvenido a la agenda de UtilsX!\e[0m"
 else
   echo -e "\e[32mSe creará un archivo de agenda en el directorio del programa...\e[0m"
-  echo " "
   touch "$AGENDA_FILE"
   echo -e "\e[1;34m¡Bienvenido a la agenda de UtilsX!\e[0m"
 fi
@@ -642,7 +691,7 @@ if [ -e $PLUGINS_PATH/${pluginnametocheck}.sh ]; then
   checkdep "$dep"
   done
  else
- echo -e "\e[33mEl programa no tiene una lista de dependencias.\e[0m"
+ echo -e "\e[33mEl plugin no tiene una lista de dependencias.\e[0m"
  fi
 else
 echo -e "\e[33mPlugin no encontrado.\e[0m"
@@ -786,12 +835,7 @@ fi
 echo " "
 }
 
-gxstat() {
-echo "Información de esta sesión de UtilsX"
-echo "Versión: $longvernv"
-echo "Comandos ejecutados: $COMMANDCOUNT"
-}
-
+# Función para actualizar el programa
 updateprogram() {
 local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx/refs/heads/master/utilsx.sh"
 echo -e "\e[1;34mActualizando UtilsX...\e[0m"
@@ -934,12 +978,6 @@ while true; do
   
   # Aquí se define lo que hace cada comando
   case "$entradafinal" in 
-  clima)
-    clima
-    ;;
-  calc)
-    calc
-    ;;
   wiki*)
     buscar="${primeraentrada#wiki}"
     wiki "$buscar"
@@ -948,35 +986,28 @@ while true; do
   help)
     ayuda
     ;;
-  date)
-    echo "Fecha: $(date)"
-    echo " "
-    ;;
-  saludo)
-    echo "¡Hola, $USERNAME!"
-    echo " "
-    ;;
   qrgen)
     parametro="$primeraentrada#qrgen}"
     qrgen $parametro
     ;;
   exit)
     echo "Cerrando..."
+    if [ $devmode == true ]; then
+    echo "Eliminando datos y configuraciones del programa..."
+    rm -r $PROGRAMPATH/utilsx_data
+    if [ -d $PLUGINS_PATH ]; then
+    echo "Eliminando plugins..."
+    rm -r $PLUGINS_PATH
+    fi
+    echo "Eliminando verificador de sesión Devmode..."
+    rm $HOME/.devmodeverifier
+    fi
     break
-    ;;
-  todo)
-    todo
     ;;
   reload)
     $PROGRAMPATH/utilsx.sh
     break
     ;;
-   notes)
-     notes
-     ;;
-  gxstat)
-     gxstat
-     ;;
   passmanager)
     pass_manager
     ;;
@@ -1023,6 +1054,7 @@ while true; do
     $primeraentrada
     ;;
 esac
+parametro=""
 done
 
 
