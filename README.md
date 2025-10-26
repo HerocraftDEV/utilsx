@@ -39,9 +39,9 @@ Asegurate de tener las siguientes dependencas para una experiencia completa:
 UtilsX guarda tus preferencias en el archivo utilsx.conf dentro del directorio utilsx_data.
 El programa creará los archivos necesarios dentro de ese directorio según las utilidades que vayas usando y las opciones que elijas en el menú CONFIG.
 
-##### Plugins
+#### Plugins
 
 Los plugins son scripts .sh cuyas funciones se pueden ejecutar como comandos de bash dentro de UtilsX.
-Se guardan en la carpeta utilsx_plugins y pueden ser instalados desde el repositorio oficial con PLUGINS INSTALL <nombre> o ser añadidos manualmente por el usuario en utilsx_plugins.
+Se guardan en la carpeta utilsx_plugins y pueden ser instalados desde el repositorio oficial con PLUGINS INSTALL <nombre> o ser añadidos manualmente por el usuario en el directorio de plugins.
 
  
