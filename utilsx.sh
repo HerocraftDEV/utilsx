@@ -15,7 +15,7 @@ HISTFILE="$PROGRAMPATH/utilsx_data/.hist"
 MAXLINES=50
 COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
-BACKUPS_PATH="$HOME/.utilsx_backups"
+BACKUPS_PATH="$PROGRAMPATH/.utilsx_backups"
 dnmode=false
 
 # Función de temporizador simple, comando TIMER
@@ -188,12 +188,14 @@ else
 local BACKUP_PATH="$BACKUPS_PATH/$backupname"
 fi
 if [ -d $BACKUP_PATH ]; then
-echo "El backup ya existe."
+echo "Ya se está usando ese nombre para una copia."
 else
 mkdir -p $BA7CKUP_PATH
+if [ -d $PROGRAMPATH/utilsx_plugins ]; then
 mkdir -p $BACKUP_PATH/utilsx_plugins
-mkdir -p $BACKUP_PATH/utilsx_data
 cp -r $PROGRAMPATH/utilsx_plugins $BACKUP_PATH/
+fi
+mkdir -p $BACKUP_PATH/utilsx_data
 cp -r $PROGRAMPATH/utilsx_data $BACKUP_PATH/
 cp -r $PROGRAMPATH/utilsx.sh $BACKUP_PATH/utilsx.sh
 echo -e "\e[32mHecho. \e[0m"
@@ -337,18 +339,19 @@ USERPASS="0"
 fi
 # Muestra la lista de opciones
 echo " "
-echo "¡Bienvenido al gestor de contraseñas de UtilsX!"
-echo "Opciones: "
+echo -e "\e[1;34m¡Bienvenido al gestor de contraseñas de UtilsX!\e[0m"
+echo -e "\e[33mOpciones: \e[0m"
 echo "add = Agregar contraseña"
 echo "view = Ver contraseñas"
 echo "exit = Salir"
 # Bucle principal en el que se definen las opciones
 while $dontclosepassmanager; do
-read -p "Elija una opción: " opcion
+read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' opcion
 case $opcion in
   add) add_password ;;
   view) view_passwords ;;
-  exit) dontclosepassmanager=false ;;
+  exit) echo " "
+        dontclosepassmanager=false ;;
   *) echo "Opción no válida"
 esac
 done
@@ -380,34 +383,36 @@ echo " "
 
 # Función principal del menú de to-do
 todo() {
+echo " "
 dontendtodo=true
 # Verifica si existe el archivo TODO.txt, si no es así lo crea
 if [ -f "$TODO_FILE" ]; then
-  echo "¡Bienvenido a UtilsX To-Do!"
+  echo -e "\e[1;34m¡Bienvenido a UtilsX To-Do!\e[0m"
 else
-  echo "Se creará un archivo de tareas en el directorio del programa..."
+  echo -e "\e[32mSe creará un archivo de tareas en el directorio del programa...\e[0m"
+  echo " "
   touch "$TODO_FILE"
-  echo "¡Bienvenido a UtilsX To-Do!"
+  echo -e "\e[1;34m¡Bienvenido a UtilsX To-Do!\e[0m"
 fi
 # Lista de opciones
-echo "Opciones: "
+echo -e "\e[33mOpciones: \e[0m"
 echo "list = Ver lista de tareas"
 echo "add = Agregar una tarea"
 echo "complete = Marcar una tarea como completada"
 echo "del = Eliminar una tarea"
 echo "exit = Salir"
 echo "help = Muestra este mensaje"
-echo " "
 # Aquí se definen las opciones
 while $dontendtodo; do
-  read -p "Seleccione una opción: " opciontodo
+  read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' opciontodo
   case $opciontodo in
     list) show_tasks_todo ;;
     add) add_tasks_todo ;;
     complete) complete_tasks_todo ;;
-    exit) dontendtodo=false ;;
+    exit) echo " "
+          dontendtodo=false ;;
     del) delete_tasks_todo ;;
-    help) echo "Opciones: "
+    help) echo -e "\e[33mOpciones: \e[0m"
           echo "list = Ver lista de tareas"
           echo "add = Agregar una tarea"
           echo "complete = Marcar una tarea como completada"
@@ -415,7 +420,7 @@ while $dontendtodo; do
           echo "exit = Salir"
           echo "help = Muestra este mensaje"
           echo " " ;;
-    *) echo "Entrada no válida" ;;
+    *) echo -e "\e[33mEntrada no válida\e[0m" ;;
 esac
 done
 }
@@ -480,17 +485,19 @@ echo " "
 
 # Función principal de agenda usando el archivo AGENDA.txt, comando AGENDA
 agenda() {
+echo " "
 dontendagenda=true
 # Verifica si exite el archivo AGENDA.txt en la carpeta de datos, si no es así crea un archivo nuevo
 if [ -f "$AGENDA_FILE" ]; then
-  echo "¡Bienvenido a la agenda de UtilsX!"
+  echo -e "\e[1;34m¡Bienvenido a la agenda de UtilsX!\e[0m"
 else
-  echo "Se creará un archivo de agenda en el directorio del programa..."
+  echo -e "\e[32mSe creará un archivo de agenda en el directorio del programa...\e[0m"
+  echo " "
   touch "$AGENDA_FILE"
-  echo "¡Bienvenido a la agenda de UtilsX!"
+  echo -e "\e[1;34m¡Bienvenido a la agenda de UtilsX!\e[0m"
 fi
 # Muestra las opciones
-echo "Opciones: "
+echo -e "\e[33mOpciones: \e[0m"
 echo "list = Muestra la agenda"
 echo "add = Añadir a la agenda"
 echo "del = Eliminar de la agenda"
@@ -498,18 +505,20 @@ echo "help = Muestra esta ayuda"
 echo "exit = Salir"
 # Bucle principal, aquí se definen las opciones
 while $dontendagenda; do
-  read -p "Seleccione una opción: " opcionagenda
+  read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' opcionagenda
   case $opcionagenda in
     list) show_agenda ;;
     add) add_agenda ;;
-    exit) dontendagenda=false ;;
+    exit) echo " "
+	  dontendagenda=false ;;
     del) delete_agenda ;;
-    help) echo "Opciones: "
+    help) echo -e "\e[33mOpciones: \e[0m"
           echo "list = Muestra la agenda"
           echo "add = Añadir a la agenda"
           echo "del = Eliminar de la agenda"
           echo "help = Muestra esta ayuda"
-          echo "exit = Salir";;
+          echo "exit = Salir"
+          echo " " ;;
     *) echo "Entrada no válida" ;;
 esac
 done
@@ -795,6 +804,7 @@ fi
 
 # Función del comando CONFIG
 configurar() {
+echo " "
 # Texto de ayuda
 dontquitconfig=true
 echo -e "\e[1;34mConfiguración de UtilsX\e[0m"
@@ -807,8 +817,6 @@ echo -e "5) Crear copias de seguridad del programa"
 echo -e "6) Información de UtilsX"
 echo -e "7) Buscar actualizaciones"
 echo -e "8) Salir"
-
-# Mientras la variable dontquitconfig sea true, se podrá seleccionar una de las 7 opciones
 while $dontquitconfig; do
 read -p $'\e[1;33m'"Opción > "$'\e[0m' configselec
 case $configselec in 
@@ -874,7 +882,7 @@ cleandnmodeentry=$(echo "$dnmodeentry" | tr '[:upper:]' '[:lower:]')
     qrgen $@
     ;;
   passgen)
-    random_pass_gen
+    random_pass_gen $@
     ;;
   config)
     configurar
@@ -987,7 +995,8 @@ while true; do
     plugin $parametro
     ;;
   passgen)
-    random_pass_gen
+    parametro="${primeraentrada#passgen}"
+    random_pass_gen $parametro
     ;;
   config)
     configurar
