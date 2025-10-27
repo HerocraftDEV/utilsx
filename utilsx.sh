@@ -368,7 +368,7 @@ fi
 errorcode=0
 dontquitcopilotconfig=true
 if [ -e $PROGRAMPATH/utilsx_data/.copilotparameters.conf ]; then
-personalinst=$(cat .copilotparameters.conf)
+personalinst=$(cat $PROGRAMPATH/utilsx_data/.copilotparameters.conf)
 else
 personalinst=
 fi
@@ -396,7 +396,7 @@ local api_key="$OPENROUTER_API_KEY"
 if [ -e $PROGRAMPATH/utilsx_data/.copilotpermissons.conf ]; then
 source $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
 fi
-if [ "$COPILOT-FS-ACCESS" == "true" ]; then
+if [ "$COPILOT_FS_ACCESS" == "true" ]; then
 FILE_LIST=$(ls -1 | head -n 20)
 local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. Tienes acceso de solo lectura a los archivos del directorio actual del usuario, los cuales son $FILE_LIST. \n El usuario te deja las siguientes instrucciones: $personalinst"
 else
