@@ -192,6 +192,7 @@ echo "La copia elegida no existe. "
 fi
 }
 
+# Activar / Deshabilitar modo de desarrollador
 devmode() {
 echo "El modo de desarrollador es un modo especial que borra tus configuraciones al salir y permite ver información sobre la ejecución de comandos."
 read -p "¿Desea activar el modo de desarrollador ahora? (S/N) " devmodeactivateselec
@@ -204,7 +205,7 @@ devmode=false
 prompttext="UtilsX > "
 rm $HOME/.devmodeverifier
 fi
-echo -e "\e[33mHecho.\e[0m"
+echo "Hecho."
 }
 
 # Backup completo
@@ -328,6 +329,100 @@ if [ "$USE_DEFAULT_CITY" = "true" ]; then
 echo "¿No es esta tu ciudad? Puedes editarla en las opciones de configuración."
 fi
 echo " "
+fi
+}
+
+# Personalizar instrucciones para copilot
+personalizecopilot(){
+if [ -e $PROGRAMPATH/utilsx_data/.copilotparameters.conf ]; then
+rm $PROGRAMPATH/utilsx_data/.copilotparameters.conf
+fi
+touch $PROGRAMPATH/utilsx_data/.copilotparameters.conf
+read -p "Escriba las instrucciones personalizadas para copilot: " personalcopilotinst
+echo $personalcopilotinst >> $PROGRAMPATH/utilsx_data/.copilotparameters.conf
+echo "Hecho."
+}
+
+# Ajustar permisos para copilot
+copilotpermissons(){
+if [ -e $PROGRAMPATH/utilsx_data/.copilotpermissons.conf ]; then
+rm $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
+fi
+read -p "¿Permite que Copilot pueda ver el contenido de tu directorio actual? (S/N) " copilotfspermissonselec
+if [ $copilotfspermissonselec == S ] || [ $copilotfspermissonselec == s ]; then
+echo "COPILOT_FS_ACCESS=true" >> $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
+else
+:
+fi
+}
+
+# Asistente de IA con openrouter API y modelo deepseek
+copilot() {
+echo " "
+if [ ! -e $PROGRAMPATH/utilsx_data/.copilotverifier ]; then
+echo "Puedes configurar el asistente con el comando COPILOT -config"
+touch $PROGRAMPATH/utilsx_data/.copilotverifier
+fi
+
+# Variables principales
+errorcode=0
+dontquitcopilotconfig=true
+if [ -e $PROGRAMPATH/utilsx_data/.copilotparameters.conf ]; then
+personalinst=$(cat .copilotparameters.conf)
+else
+personalinst=
+fi
+
+# Configuración de UtilsX copilot
+if [ $1 == -config ]; then
+echo -e "\e[1;34mConfiguración de UtilsX Copilot\e[0m"
+echo -e "\e[33mOpciones: \e[0m"
+echo "1) Permisos"
+echo "2) Instrucciones personalizadas"
+echo "3) Salir"
+while $dontquitcopilotconfig; do
+read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' copilotconfigselec
+case $copilotconfigselec in
+1) copilotpermissons ;;
+2) personalizecopilot ;;
+3) dontquitcopilotconfig=false ;;
+esac
+done
+else
+
+# Variables principales
+mensaje="$*"
+local api_key="$OPENROUTER_API_KEY"
+if [ -e $PROGRAMPATH/utilsx_data/.copilotpermissons.conf ]; then
+source $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
+fi
+if [ "$COPILOT-FS-ACCESS" == "true" ]; then
+FILE_LIST=$(ls -1 | head -n 20)
+local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. Tienes acceso de solo lectura a los archivos del directorio actual del usuario, los cuales son $FILE_LIST. \n El usuario te deja las siguientes instrucciones: $personalinst"
+else
+local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. \n El usuario te deja los siguientes parametros: $personalinst"
+fi
+
+# Verifica si tienes una API key configurada
+if [ -z "$api_key" ]; then
+echo "No se encontró una API key para OpenRouter en el archivo de configuración"
+echo "Para obtener una, inicie sesión en https://openrouter.ai/ y cree una key"
+echo "Para configurar sus API keys, use el comando CONFIG"
+errorcode=1
+echo " "
+fi
+
+# Curl a la API con el modelo deepseek-r1-distill-llama-70b
+if [ $errorcode == 0 ]; then
+curl -s https://openrouter.ai/api/v1/chat/completions \
+    -H "Authorization: Bearer $api_key" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "model": "'"deepseek/deepseek-r1-distill-llama-70b:free"'",
+      "messages": [{"role": "system", "content": "'"$sysmsg"'"}, {"role": "user", "content": "'"$mensaje"'"}]
+    }' | jq -r '.choices[0].message.content'
+echo " "
+fi
 fi
 }
 
@@ -483,6 +578,13 @@ else
 echo "OPENWEATHERMAP_API_KEY=\"$newowmapikey\"" >> "$CONFIG_FILE"
 fi
 source "$CONFIG_FILE"
+read -e -p "Escriba su API key de OpenRouter: " newopenrtapikey
+if grep -q "^OPENROUTER_API_KEY=" "$CONFIG_FILE"; then
+sed -i "s/^OPENROUTER_API_KEY=.*/OPENROUTER_API_KEY=\"$newopenrtapikey\"/" "$CONFIG_FILE"
+else
+echo "OPENROUTER_API_KEY=\"$newopenrtapikey\"" >> "$CONFIG_FILE"
+fi
+source "$CONFIG_FILE"
 echo "Todas las API keys han sido actualizadas."
 }
 
@@ -582,19 +684,19 @@ echo "3) todo = Lista de tareas"
 echo "4) qrgen = Generador de códigos QR"
 echo "5) passmanager = Administrador de contraseñas utilizando cifrado"
 echo "6) timer (tiempo) = Temporizador"
-echo "7) sysinfo = Muestra información del sistema"
 echo "8) wiki (nombre) = Busca una página en wikipedia y muestra el resumen"
 echo "9) agenda = Agenda"
 echo "10) notes = Notas rápidas"
 echo "11) searchfiles (parte del nombre) = Buscar archivos"
-echo "12) ver = Muestra la versión del programa"
-echo "13) showmydir/dontshowmydir = Cambia el modo del prompt"
-echo "14) plugins = Gestionar plugins (usa plugins help para ver parámetros)"
-echo "15) help = Muestra esta ayuda"
-echo "16) exit = Salir"
-echo "17) config = Configuración del programa"
-echo "18) reload = Recarga el programa"
-echo "19) El resto de comandos de bash son compatibles"
+echo "12) copilot <mensaje> = Envía un mensaje a un modelo de IA"
+echo "13) ver = Muestra la versión del programa"
+echo "14) showmydir/dontshowmydir = Cambia el modo del prompt"
+echo "15) plugins = Gestionar plugins (usa plugins help para ver parámetros)"
+echo "16) help = Muestra esta ayuda"
+echo "17) exit = Salir"
+echo "18) config = Configuración del programa"
+echo "19) reload = Recarga el programa"
+echo "20) El resto de comandos de bash son compatibles"
 echo " "
 elif [ $dnmode == true ]; then
 echo "Lista de utilidades disponibles en este modo: "
@@ -611,8 +713,9 @@ echo "10) notes = Notas rápidas"
 echo "11) searchfiles (parte del nombre) = Buscar archivos"
 echo "12) ver = Muestra la versión del programa"
 echo "13) plugins = Gestionar plugins (usa plugins help para ver parámetros)"
-echo "14) help = Muestra esta ayuda"
-echo "15) config = Configuración del programa"
+echo "14) copilot <mensaje> = Envia un mensaje a un modelo de IA"
+echo "15) help = Muestra esta ayuda"
+echo "16) config = Configuración del programa"
 echo " "
 else
 :
@@ -924,6 +1027,9 @@ cleandnmodeentry=$(echo "$dnmodeentry" | tr '[:upper:]' '[:lower:]')
     ;;
   searchfiles*)
     findmyfiles $@
+    ;;
+  copilot)
+    copilot $@
     ;;
   ver)
     echo -e "\e[36mUtilsX \e[33m$longver \e[0m"
