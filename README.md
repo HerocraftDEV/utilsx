@@ -14,25 +14,24 @@ Asegurate de tener las siguientes dependencas para una experiencia completa:
 - qrencode
 - openssl
 - jq
-- bc
+- curl
 
 ### Características
 
-- 'calc' - Calculadora simple
 - 'clima' - Ver el clima actual (requiere configurar tu ciudad en configuraciones y API key)
 - 'passgen' - Generador de contraseñas
 - 'todo' - Un to-do simple que se guarda en TODO.txt
-- 'notes' - Notas rápidas: un solo comando para cualquier cosa
-- 'agenda' - Similar a to-do pero modificado para que sea agenda. Se guarda en AGENDA.txt
-- 'wiki' - Buscar un resumen en wikipedia
-- 'passmanager' - Gestiona contraseñas mediante cifrado
-- 'showmydir' / 'dontshowmydir' - Permite cambiar el prompt por el directorio actual o por un texto personalizado que puedes elegir en configuración
 - 'qrgen' - Generador de códigos QR
-- 'timer' - Temporizador.
-- 'searchfiles' - Buscador de archivos por nombre o parte del nombre
-- 'config' - Configuración del programa (se guarda en utilsx_data)
-- 'sysinfo' - Muestra información de tu sistema
-- Y compatibilidad con comandos de bash estándar además de otras utilidades
+- 'passmanager' - Administrador de contraseñas
+- 'timer <segundos>' - Temporizador
+- 'wiki <nombre>' - Resúmen de un artículo de wikipedia
+- 'agenda' - Agenda
+- 'notes <add/view/clear>' - Notas rápidas
+- 'searchfiles <archivoabuscar>' - Buscador de archivos
+- 'copilot <mensaje>' - Asistente de IA
+- 'plugins' - Sistema de plugins
+- Otros comandos de personalización y configuración
+- El resto de comandos bash funcionan dentro de UtilsX 
 
 #### **Configuración**
 
