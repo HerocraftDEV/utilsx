@@ -1,7 +1,7 @@
 #!/bin/bash
 ver="v1.5"
-longver="v1.5.6"
-longvernv="1.5.6"
+longver="v1.5.7"
+longvernv="1.5.7"
 
 # Definiendo rutas de los archivos y variables
 PROGRAMPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -131,7 +131,7 @@ prompttext="UtilsX (devmode) > "
 else
 prompttext="UtilsX > "
 fi
-showdir=true
+showdir=false
 history -r $HISTFILE
 
 # Para el comando NOTES
@@ -398,9 +398,9 @@ source $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
 fi
 if [ "$COPILOT_FS_ACCESS" == "true" ]; then
 FILE_LIST=$(ls -1 | head -n 20)
-local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. Tienes acceso de solo lectura a los archivos del directorio actual del usuario, los cuales son $FILE_LIST. \n El usuario te deja las siguientes instrucciones: $personalinst"
+local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. Tienes acceso de solo lectura a los archivos del directorio actual del usuario, los cuales son $FILE_LIST. \n Tienes además las siguientes instrucciones: $personalinst. Para actualizarle plugins al usuario, hazlo escribiendo unicamente 'utilsxcommand updateplugins' y ya se instalará solo."
 else
-local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. \n El usuario te deja los siguientes parametros: $personalinst"
+local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. \n Tienes además las siguientes instrucciones: $personalinst. Puedes actualizarle los plugins al usuario escribiendo unicamente 'utilsxcommand updateplugins'."
 fi
 
 # Verifica si tienes una API key configurada
@@ -411,17 +411,38 @@ echo "Para configurar sus API keys, use el comando CONFIG"
 errorcode=1
 echo " "
 fi
+# Crea el historial de copilot si no existe
+if [ ! -e $PROGRAMPATH/utilsx_data/.copilothist.json ]; then
+touch $PROGRAMPATH/utilsx_data/.copilothist.json
+fi
+
+#
+json_msg=$(echo "$mensaje" | jq -R '{role: "user", content:.}')
+echo "$json_msg">> "$PROGRAMPATH/utilsx_data/.copilothist.json"
+mensajes=$(jq -s '.' "$PROGRAMPATH/utilsx_data/.copilothist.json")
+
+#
+payload=$(jq -n \
+  --arg model "deepseek/deepseek-r1-distill-llama-70b:free" \
+  --arg sysmsg "$sysmsg" \
+  --argjson msgs "$mensajes" \
+  '{
+    model: $model,
+    messages: ([{"role": "system", "content": $sysmsg}] + $msgs)
+}')
 
 # Curl a la API con el modelo deepseek-r1-distill-llama-70b
 if [ $errorcode == 0 ]; then
-curl -s https://openrouter.ai/api/v1/chat/completions \
-    -H "Authorization: Bearer $api_key" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "model": "'"deepseek/deepseek-r1-distill-llama-70b:free"'",
-      "messages": [{"role": "system", "content": "'"$sysmsg"'"}, {"role": "user", "content": "'"$mensaje"'"}]
-    }' | jq -r '.choices[0].message.content'
+RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
+  -H "Authorization: Bearer $api_key" \
+  -H "Content-Type: application/json" \
+  -d "$payload" | jq -r '.choices[0].message.content')
+fi
+echo "$RESPONSE"
+echo "$RESPONSE" | jq -R '{role: "assistant", content:.}'>> "$PROGRAMPATH/utilsx_data/.copilothist.json"
 echo " "
+if [[ "$RESPONSE" == *"utilsxcommand updateplugins"* ]]; then
+updateplugins
 fi
 fi
 }
@@ -1098,6 +1119,7 @@ while true; do
     echo "Eliminando verificador de sesión Devmode..."
     rm $HOME/.devmodeverifier
     fi
+    rm $PROGRAMPATH/utilsx_data/.copilothist.json
     break
     ;;
   reload)
