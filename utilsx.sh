@@ -1119,7 +1119,9 @@ while true; do
     echo "Eliminando verificador de sesión Devmode..."
     rm $HOME/.devmodeverifier
     fi
+    if [ -e $PROGRAMPATH/utilsx_data/.copilothist.json ]; then
     rm $PROGRAMPATH/utilsx_data/.copilothist.json
+    fi
     break
     ;;
   reload)
