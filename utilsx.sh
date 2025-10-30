@@ -352,11 +352,6 @@ fi
 # Variables principales
 errorcode=0
 dontquitcopilotconfig=true
-if [ -e $PROGRAMPATH/utilsx_data/.copilotparameters.conf ]; then
-personalinst=$(cat $PROGRAMPATH/utilsx_data/.copilotparameters.conf)
-else
-personalinst=
-fi
 
 # Configuración de UtilsX copilot
 if [ $1 == -config ]; then
@@ -381,9 +376,9 @@ source $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
 fi
 if [ "$COPILOT_FS_ACCESS" == "true" ]; then
 FILE_LIST=$(ls -1 | head -n 20)
-local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. El directorio actual del usuario es $(pwd) y tiene los archivos $FILE_LIST Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, backupmenu, timer [segundos], updateprogram, agenda, todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. El directorio actual del usuario es $(pwd) y tiene los archivos $FILE_LIST Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, backupmenu, wiki [artículo-de-wikipedia], timer [segundos], updateprogram, agenda, searchfiles [nombre], todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 else
-local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, timer [segundos], agenda, updateprogram, backupmenu, todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, timer [segundos], agenda, updateprogram, backupmenu, todo, qrgen [URL], clima, searchfiles [nombre], wiki [artículo-de-wikipedia], plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 fi
 
 # Verifica si tienes una API key configurada
