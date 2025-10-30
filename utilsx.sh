@@ -17,15 +17,11 @@ COMMANDCOUNT=0
 PLUGINS_PATH="$PROGRAMPATH/utilsx_plugins"
 BACKUPS_PATH="$PROGRAMPATH/.utilsx_backups"
 dnmode=false
+copilotcommandfunc=false
 if [ ! -e $HOME/.devmodeverifier ]; then
 devmode=false
 else
 devmode=true
-fi
-if [ ! -e $HOME/.showendverifier ]; then
-showend=false
-else
-showend=true
 fi
 
 # Función de temporizador simple, comando TIMER
@@ -131,7 +127,7 @@ prompttext="UtilsX (devmode) > "
 else
 prompttext="UtilsX > "
 fi
-showdir=false
+showdir=true
 history -r $HISTFILE
 
 # Para el comando NOTES
@@ -332,17 +328,6 @@ echo " "
 fi
 }
 
-# Personalizar instrucciones para copilot
-personalizecopilot(){
-if [ -e $PROGRAMPATH/utilsx_data/.copilotparameters.conf ]; then
-rm $PROGRAMPATH/utilsx_data/.copilotparameters.conf
-fi
-touch $PROGRAMPATH/utilsx_data/.copilotparameters.conf
-read -p "Escriba las instrucciones personalizadas para copilot: " personalcopilotinst
-echo $personalcopilotinst >> $PROGRAMPATH/utilsx_data/.copilotparameters.conf
-echo "Hecho."
-}
-
 # Ajustar permisos para copilot
 copilotpermissons(){
 if [ -e $PROGRAMPATH/utilsx_data/.copilotpermissons.conf ]; then
@@ -378,14 +363,12 @@ if [ $1 == -config ]; then
 echo -e "\e[1;34mConfiguración de UtilsX Copilot\e[0m"
 echo -e "\e[33mOpciones: \e[0m"
 echo "1) Permisos"
-echo "2) Instrucciones personalizadas"
-echo "3) Salir"
+echo "2) Salir"
 while $dontquitcopilotconfig; do
 read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' copilotconfigselec
 case $copilotconfigselec in
 1) copilotpermissons ;;
-2) personalizecopilot ;;
-3) dontquitcopilotconfig=false ;;
+2) dontquitcopilotconfig=false ;;
 esac
 done
 else
@@ -398,9 +381,9 @@ source $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
 fi
 if [ "$COPILOT_FS_ACCESS" == "true" ]; then
 FILE_LIST=$(ls -1 | head -n 20)
-local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. Tienes acceso de solo lectura a los archivos del directorio actual del usuario, los cuales son $FILE_LIST. \n Tienes además las siguientes instrucciones: $personalinst. Para actualizarle plugins al usuario, hazlo escribiendo unicamente 'utilsxcommand updateplugins' y ya se instalará solo."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. El directorio actual del usuario es $(pwd) y tiene los archivos $FILE_LIST Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, backupmenu, timer [segundos], updateprogram, agenda, todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 else
-local sysmsg="Eres un asistente llamado UtilsX Copilot integrado en un programa llamado UtilsX cuya versión es $longver. \n Estás en una terminal. No uses Markdown, LaTeX ni formato especial. Respondé en texto plano. \n El usuario se llama $USERNAME. \n Tienes además las siguientes instrucciones: $personalinst. Puedes actualizarle los plugins al usuario escribiendo unicamente 'utilsxcommand updateplugins'."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, timer [segundos], agenda, updateprogram, backupmenu, todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 fi
 
 # Verifica si tienes una API key configurada
@@ -438,12 +421,15 @@ RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d "$payload" | jq -r '.choices[0].message.content')
 fi
-echo "$RESPONSE"
+
+if [[ "$RESPONSE" == *"utilsx "* ]]; then
+comando="${RESPONSE#*utilsx }"
+copilotcommandfunc=true
+fi
+CLEAN_RESPONSE="$(echo "$RESPONSE" | sed -E 's/utilsx[[:space:]]+[[:print:]]*//g')"
+echo "$CLEAN_RESPONSE"
 echo "$RESPONSE" | jq -R '{role: "assistant", content:.}'>> "$PROGRAMPATH/utilsx_data/.copilothist.json"
 echo " "
-if [[ "$RESPONSE" == *"utilsxcommand updateplugins"* ]]; then
-updateplugins
-fi
 fi
 }
 
@@ -766,7 +752,7 @@ fi
 installplugin() {
 local pluginnametoinstall="$1"
 local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx-plugins/main/${pluginnametoinstall}.sh"
-echo -e "\e[1;34mBuscando el plugin...\e[0m"
+echo -e "\e[1;34mBuscando el plugin $pluginnametoinstall...\e[0m"
 
 # Descarga el plugin en el directorio de plugins
 if curl --head --silent --fail "$repo_url" > /dev/null; then
@@ -784,7 +770,7 @@ echo -e "\e[33mPuedes verificar su disponibilidad con el comando plugins depchec
 fi
 
 else
-echo -e "\e[1;31mEl plugin no se ha podido descargar correctamente.\e[0m"
+echo -e "\e[1;31mEl plugin no se ha podido descargar correctamente. Verifica su existencia en los repositorios o tu conexión a internet.\e[0m"
 fi
 echo " "
 }
@@ -1076,7 +1062,12 @@ while true; do
   fi
   
   # Define el read principal y el historial de mensajes
+  if [ $copilotcommandfunc == false ]; then
   read -e -p $'\e[32m'"$prompt"$'\e[0m' primeraentrada
+  else 
+  primeraentrada=$comando
+  copilotcommandfunc=false
+  fi
   COMMANDCOUNT=$((COMMANDCOUNT +1))
   entradafinal=$(echo "$primeraentrada" | tr '[:upper:]' '[:lower:]')
   if [ -z "$entradafinal" ]; then
