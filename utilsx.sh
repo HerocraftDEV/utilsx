@@ -376,9 +376,9 @@ source $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
 fi
 if [ "$COPILOT_FS_ACCESS" == "true" ]; then
 FILE_LIST=$(ls -1 | head -n 20)
-local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. El directorio actual del usuario es $(pwd) y tiene los archivos $FILE_LIST Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, backupmenu, wiki [artículo-de-wikipedia], timer [segundos], updateprogram, agenda, searchfiles [nombre], todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. El directorio actual del usuario es $(pwd) y tiene los archivos $FILE_LIST Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, backupmenu, wiki [artículo-de-wikipedia], add_tasks_todo [tarea], timer [segundos], updateprogram, agenda, searchfiles [nombre], todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 else
-local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, timer [segundos], agenda, updateprogram, backupmenu, todo, qrgen [URL], clima, searchfiles [nombre], wiki [artículo-de-wikipedia], plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, timer [segundos], agenda, updateprogram, backupmenu, todo, qrgen [URL], clima, searchfiles [nombre], wiki [artículo-de-wikipedia], add_tasks_todo [tarea], plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 fi
 
 # Verifica si tienes una API key configurada
@@ -416,10 +416,10 @@ RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d "$payload" | jq -r '.choices[0].message.content')
 fi
-
 if [[ "$RESPONSE" == *"utilsx "* ]]; then
-comando="${RESPONSE#*utilsx }"
-copilotcommandfunc=true
+ comando=$(echo "$RESPONSE" | grep -oP '(?<=utilsx ).*' | head -n 1)
+ comando=$(echo "$comando" | cut -d$'\n' -f1)
+ copilotcommandfunc=true
 fi
 CLEAN_RESPONSE="$(echo "$RESPONSE" | sed -E 's/utilsx[[:space:]]+[[:print:]]*//g')"
 echo "$CLEAN_RESPONSE"
@@ -514,7 +514,11 @@ echo " "
 
 # Función para añadir una tarea a to-do
 add_tasks_todo() {
+if [ -z "$*" ]; then
 read -p "Nombre de la tarea a añadir: " task
+else
+task="$*"
+fi
 echo "$task" >> "$TODO_FILE"
 echo "✅ Tarea añadida"
 echo " "
