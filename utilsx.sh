@@ -215,7 +215,7 @@ fi
 if [ -d $BACKUP_PATH ]; then
 echo "Ya se está usando ese nombre para una copia."
 else
-mkdir -p $BA7CKUP_PATH
+mkdir -p $BACKUP_PATH
 if [ -d $PROGRAMPATH/utilsx_plugins ]; then
 mkdir -p $BACKUP_PATH/utilsx_plugins
 cp -r $PROGRAMPATH/utilsx_plugins $BACKUP_PATH/
