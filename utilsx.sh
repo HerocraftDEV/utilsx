@@ -290,7 +290,11 @@ errorcode=0
 if [ "$USE_DEFAULT_CITY" = "true" ]; then
 CITY="$DEFAULT_CITY"
 else 
+if [ -z "$1" ]; then
 read -p "Elija una ciudad: " CITY
+else
+CITY=$1
+fi
 fi
 # Verifica si configuraste tu API key
 if [ -z "$OPENWEATHERMAP_API_KEY" ]; then
@@ -420,9 +424,9 @@ source $PROGRAMPATH/utilsx_data/.copilotpermissons.conf
 fi
 if [ "$COPILOT_FS_ACCESS" == "true" ]; then
 FILE_LIST=$(ls -1 | head -n 20)
-local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. El directorio actual del usuario es $(pwd) y tiene los archivos $FILE_LIST Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, backupmenu, wiki [artículo-de-wikipedia], add_tasks_todo [tarea], timer [segundos], updateprogram, agenda, searchfiles [nombre], todo, qrgen [URL], clima, plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. El directorio actual del usuario es $(pwd) y tiene los archivos $FILE_LIST Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, backupmenu, wiki [artículo-de-wikipedia], add_tasks_todo [tarea], timer [segundos], updateprogram, agenda, searchfiles [nombre], todo, qrgen [URL], clima [ciudad-opcional], plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 else
-local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, timer [segundos], agenda, updateprogram, backupmenu, todo, qrgen [URL], clima, searchfiles [nombre], wiki [artículo-de-wikipedia], add_tasks_todo [tarea], plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
+local sysmsg="Eres UtilsX Copilot, un asistente integrado en el programa UtilsX ($longver). Estas en una terminal. Usas solo texto (sin markdown ni LaTeX). El usuario con el que vas a hablar se llama $USERNAME. Puedes ejecutar comandos del programa escribiendo 'utilsx <comando> [argumentos]' sin texto adicional. Los comandos de UtilsX son: help, config, timer [segundos], agenda, updateprogram, backupmenu, todo, qrgen [URL], clima [ciudad-opcional], searchfiles [nombre], wiki [artículo-de-wikipedia], add_tasks_todo [tarea], plugins [parametros: install <nombre>, update, remove], notes [parametros: add <texto>, view, clear]."
 fi
 
 # Verifica si tienes una API key configurada
@@ -474,8 +478,12 @@ fi
 
 # Imprime la respuesta en pantalla sin los comandos ejecutados por la IA
 CLEAN_RESPONSE="$(echo "$RESPONSE" | sed -E 's/utilsx[[:space:]]+[[:print:]]*//g')"
+echo " "
 echo "$CLEAN_RESPONSE"
 echo "$RESPONSE" | jq -R '{role: "assistant", content:.}' >> "$PROGRAMPATH/utilsx_data/.copilothist.json"
+if [[ "$copilotcommandfunc" == "false" ]]; then
+echo " "
+fi
 }
 
 # Función para buscar un resumen en wikipedia usando su API
@@ -628,19 +636,25 @@ done
 # Función para cambiar las API keys en el archivo de configuración, parte del comando CONFIG
 setapikeys() {
 read -e -p "Escriba su API key de OpenWeatherMap: " newowmapikey
+if [[ ! -z "$newowmapikey" ]]; then
 if grep -q "^OPENWEATHERMAP_API_KEY=" "$CONFIG_FILE"; then
 sed -i "s/^OPENWEATHERMAP_API_KEY=.*/OPENWEATHERMAP_API_KEY=\"$newowmapikey\"/" "$CONFIG_FILE"
 else
 echo "OPENWEATHERMAP_API_KEY=\"$newowmapikey\"" >> "$CONFIG_FILE"
 fi
+fi
 source "$CONFIG_FILE"
+
 read -e -p "Escriba su API key de OpenRouter: " newopenrtapikey
+if [[ ! -z "$newopenrtapikey" ]]; then
 if grep -q "^OPENROUTER_API_KEY=" "$CONFIG_FILE"; then
 sed -i "s/^OPENROUTER_API_KEY=.*/OPENROUTER_API_KEY=\"$newopenrtapikey\"/" "$CONFIG_FILE"
 else
 echo "OPENROUTER_API_KEY=\"$newopenrtapikey\"" >> "$CONFIG_FILE"
 fi
+fi
 source "$CONFIG_FILE"
+
 echo "Todas las API keys han sido actualizadas."
 }
 
