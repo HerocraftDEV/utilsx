@@ -234,17 +234,17 @@ ls $BACKUPS_PATH
 read -p "Elija una opción: " restoreselec
 local BACKUP_PATH="$BACKUPS_PATH/$restoreselec"
 if [ -d $BACKUP_PATH ]; then
+echo -e "\e[32mRestaurando datos..."
 rm -r $PROGRAMPATH/utilsx_data
+cp $BACKUP_PATH/utilsx_data $PROGRAMPATH/utilsx_data
+if [ -d $PLUGINS_PATH ]; then
+echo -e "Restaurando plugins..."
 rm -r $PROGRAMPATH/utilsx_plugins
+cp $BACKUP_PATH/utilsx_plugins $PROGRAMPATH/utilsx_plugins
+fi
+echo -e "Restaurando programa...\e[0m"
 rm -r $PROGRAMPATH/utilsx.sh
-echo -e "\e[32mRestaurando el programa..."
 cp $BACKUP_PATH/utilsx.sh $PROGRAMPATH/utilsx.sh
-sleep 1
-echo -e "Restaurando datos..."
-cp -r $BACKUP_PATH/utilsx_data $PROGRAMPATH/
-sleep 1
-echo -e "Restaurando plugins...\e[0m"
-cp -r $BACKUP_PATH/utilsx_plugins $PROGRAMPATH/
 sleep 1
 echo -e "\e[33mCompletado. El programa se reiniciará para terminar los cambios.\e[0m"
 silenttimer 3
@@ -464,13 +464,15 @@ RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d "$payload" | jq -r '.choices[0].message.content')
 fi
+
+# Verifica si la IA utilizó el prefijo para ejecutar comandos de UtilsX
 if [[ "$RESPONSE" == *"utilsx "* ]]; then
  comando=$(echo "$RESPONSE" | grep -oP '(?<=utilsx ).*' | head -n 1)
  comando=$(echo "$comando" | cut -d$'\n' -f1)
  copilotcommandfunc=true
 fi
 
-# Imprime la respuesta en pantalla sin mostrar líneas con espacios vacíos o con los comandos ejecutados por la IA
+# Imprime la respuesta en pantalla sin los comandos ejecutados por la IA
 CLEAN_RESPONSE="$(echo "$RESPONSE" | sed -E 's/utilsx[[:space:]]+[[:print:]]*//g')"
 echo "$CLEAN_RESPONSE"
 echo "$RESPONSE" | jq -R '{role: "assistant", content:.}' >> "$PROGRAMPATH/utilsx_data/.copilothist.json"
@@ -984,6 +986,7 @@ echo " "
 
 # Función para actualizar el programa
 updateprogram() {
+cp $PROGRAMPATH/utilsx.sh $PROGRAMPATH/utilsx.sh.bak
 local repo_url="https://raw.githubusercontent.com/HerocraftDEV/utilsx/refs/heads/master/utilsx.sh"
 echo -e "\e[1;34mActualizando UtilsX...\e[0m"
 if curl -s "$repo_url" -o "$0"; then
