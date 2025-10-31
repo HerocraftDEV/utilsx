@@ -389,6 +389,7 @@ echo " "
 echo -e "\e[1;34mSaliendo del modo chat...\e[0m"
 echo " "
 dontquitcopilotchatmode=false
+return 0
 fi
 copilot "$copilotchatmodeinput"
 done
