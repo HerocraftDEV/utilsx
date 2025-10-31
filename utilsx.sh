@@ -343,18 +343,61 @@ fi
 
 # Asistente de IA con openrouter API y modelo deepseek
 copilot() {
-echo " "
 if [ ! -e $PROGRAMPATH/utilsx_data/.copilotverifier ]; then
-echo "Puedes configurar el asistente con el comando COPILOT -config"
+echo -e "\e[32mPuedes configurar el asistente con el comando copilot -config\e[0m"
+echo "Para ver la lista de parámetros, usa copilot -help"
 touch $PROGRAMPATH/utilsx_data/.copilotverifier
 fi
 
 # Variables principales
 errorcode=0
 dontquitcopilotconfig=true
+dontquitcopilotchatmode=true
+
+# Cleanmem
+if [[ "$1" == "-cleanmem" ]]; then
+rm $PROGRAMPATH/utilsx_data/.copilothist.json
+echo " "
+echo -e "\e[1;32mHecho.\e[0m"
+echo " "
+return 0
+fi
+
+# Ayuda de UtilsX Copilot
+if [[ "$1" == "-help" ]]; then
+echo " "
+echo "Lista de parámetros para el comando copilot:"
+echo "-chat = Inicia el modo chat"
+echo "-help = Muestra esta ayuda"
+echo "-config = Configura UtilsX Copilot"
+echo "-cleanmem = Borra la memoria temporal de Copilot"
+echo " "
+return 0
+fi
+
+# Modo chat
+if [[ "$1" == "-chat" ]]; then
+echo " "
+echo -e "\e[1;34mEntrando en modo chat con UtilsX Copilot.\e[0m"
+echo -e "\e[32mEscribe 'exit' para salir del chat.\e[0m"
+echo -e "\e[33mAdvertencia: En el modo chat, UtilsX Copilot no podrá ejecutar comandos de UtilsX. Los comandos que UtilsX Copilot intente ejecutar se mostrarán al salir del modo chat."
+echo " "
+while $dontquitcopilotchatmode; do
+read -p $'\e[1;33mUtilsX Copilot > \e[0m' copilotchatmodeinput
+if [[ "$copilotchatmodeinput" == "exit" ]]; then
+echo " "
+echo -e "\e[1;34mSaliendo del modo chat...\e[0m"
+echo " "
+dontquitcopilotchatmode=false
+fi
+copilot "$copilotchatmodeinput"
+done
+return 0
+fi
 
 # Configuración de UtilsX copilot
-if [ $1 == -config ]; then
+if [[ "$1" == "-config" ]]; then
+echo " "
 echo -e "\e[1;34mConfiguración de UtilsX Copilot\e[0m"
 echo -e "\e[33mOpciones: \e[0m"
 echo "1) Permisos"
@@ -389,17 +432,18 @@ echo "Para configurar sus API keys, use el comando CONFIG"
 errorcode=1
 echo " "
 fi
+
 # Crea el historial de copilot si no existe
 if [ ! -e $PROGRAMPATH/utilsx_data/.copilothist.json ]; then
 touch $PROGRAMPATH/utilsx_data/.copilothist.json
 fi
 
-#
+# Pasa el mensaje a un formato json y lo escribe en el archivo .copilothist.json
 json_msg=$(echo "$mensaje" | jq -R '{role: "user", content:.}')
 echo "$json_msg">> "$PROGRAMPATH/utilsx_data/.copilothist.json"
 mensajes=$(jq -s '.' "$PROGRAMPATH/utilsx_data/.copilothist.json")
 
-#
+# Genera el payload final
 payload=$(jq -n \
   --arg model "deepseek/deepseek-r1-distill-llama-70b:free" \
   --arg sysmsg "$sysmsg" \
@@ -416,16 +460,18 @@ RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d "$payload" | jq -r '.choices[0].message.content')
 fi
+
 if [[ "$RESPONSE" == *"utilsx "* ]]; then
  comando=$(echo "$RESPONSE" | grep -oP '(?<=utilsx ).*' | head -n 1)
- comando=$(echo "$comando" | cut -d$'\n' -f1)
+ comando=$(echo "$comando" | cut -d $'\n' -f1)
  copilotcommandfunc=true
 fi
+
+# Imprime la respuesta en pantalla sin mostrar líneas con espacios vacíos o con los comandos ejecutados por la IA
 CLEAN_RESPONSE="$(echo "$RESPONSE" | sed -E 's/utilsx[[:space:]]+[[:print:]]*//g')"
+CLEAN_RESPONSE="$(echo "$CLEAN_RESPONSE" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$')"
 echo "$CLEAN_RESPONSE"
-echo "$RESPONSE" | jq -R '{role: "assistant", content:.}'>> "$PROGRAMPATH/utilsx_data/.copilothist.json"
-echo " "
-fi
+echo "$RESPONSE" | jq -R '{role: "assistant", content:.}' >> "$PROGRAMPATH/utilsx_data/.copilothist.json"
 }
 
 # Función para buscar un resumen en wikipedia usando su API
