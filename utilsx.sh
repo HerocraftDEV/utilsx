@@ -402,14 +402,14 @@ echo -e "\e[1;34mConfiguración de UtilsX Copilot\e[0m"
 echo -e "\e[33mOpciones: \e[0m"
 echo "1) Permisos"
 echo "2) Salir"
-while $dontquitcopilotconfig; do
+while [ "$dontquitcopilotconfig" == "true" ]; do
 read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' copilotconfigselec
 case $copilotconfigselec in
 1) copilotpermissons ;;
 2) dontquitcopilotconfig=false ;;
 esac
 done
-else
+fi
 
 # Variables principales
 mensaje="$*"
@@ -460,16 +460,14 @@ RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d "$payload" | jq -r '.choices[0].message.content')
 fi
-
 if [[ "$RESPONSE" == *"utilsx "* ]]; then
  comando=$(echo "$RESPONSE" | grep -oP '(?<=utilsx ).*' | head -n 1)
- comando=$(echo "$comando" | cut -d $'\n' -f1)
+ comando=$(echo "$comando" | cut -d$'\n' -f1)
  copilotcommandfunc=true
 fi
 
 # Imprime la respuesta en pantalla sin mostrar líneas con espacios vacíos o con los comandos ejecutados por la IA
 CLEAN_RESPONSE="$(echo "$RESPONSE" | sed -E 's/utilsx[[:space:]]+[[:print:]]*//g')"
-CLEAN_RESPONSE="$(echo "$CLEAN_RESPONSE" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$')"
 echo "$CLEAN_RESPONSE"
 echo "$RESPONSE" | jq -R '{role: "assistant", content:.}' >> "$PROGRAMPATH/utilsx_data/.copilothist.json"
 }
