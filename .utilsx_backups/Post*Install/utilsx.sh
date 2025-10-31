@@ -350,7 +350,7 @@ touch $PROGRAMPATH/utilsx_data/.copilotverifier
 fi
 
 # Variables principales
-errorcodecopilot=0
+errorcode=0
 dontquitcopilotconfig=true
 dontquitcopilotchatmode=true
 
@@ -427,13 +427,10 @@ fi
 
 # Verifica si tienes una API key configurada
 if [ -z "$api_key" ]; then
-echo " "
-echo -e "\e[33mNo se encontró una API key para OpenRouter en el archivo de configuración"
+echo "No se encontró una API key para OpenRouter en el archivo de configuración"
 echo "Para obtener una, inicie sesión en https://openrouter.ai/ y cree una key"
-echo -e "Para configurar sus API keys, use el comando CONFIG\e[0m"
-echo " "
-errorcodecopilot=1
-return 1
+echo "Para configurar sus API keys, use el comando CONFIG"
+errorcode=1
 echo " "
 fi
 
@@ -458,7 +455,7 @@ payload=$(jq -n \
 }')
 
 # Curl a la API con el modelo deepseek-r1-distill-llama-70b
-if [ $errorcodecopilot == 0 ]; then
+if [ $errorcode == 0 ]; then
 RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Authorization: Bearer $api_key" \
   -H "Content-Type: application/json" \
