@@ -24,28 +24,6 @@ else
 devmode=true
 fi
 
-# Función de temporizador simple, comando TIMER
-timer() {
-sleeptime=$1
-while [ $sleeptime -gt 0 ]; do
-  echo -ne "Tiempo restante: $sleeptime segundos\r"
-  sleep 1
-  ((sleeptime--))
-done
-echo -e "\n✅ Tiempo terminado"
-echo " "
-}
-
-# Temporizador silencioso
-silenttimer() {
-sleeptime=$1
-while [ $sleeptime -gt 0 ]; do
-  echo -ne -e "\e[33mTiempo restante: $sleeptime segundos\e[0m \r"
-  sleep 1
-  ((sleeptime--))
-done
-}
-
 # Verifica si el directorio de datos del programa existe
 if [ -e "$DATA_PATH" ]; then
 :
@@ -113,12 +91,46 @@ else
 fi
 fi
 
+# Función de temporizador simple, comando TIMER
+timer() {
+sleeptime=$1
+while [ $sleeptime -gt 0 ]; do
+  echo -ne "Tiempo restante: $sleeptime segundos\r"
+  sleep 1
+  ((sleeptime--))
+done
+echo -e "\n✅ Tiempo terminado"
+echo " "
+}
+
+# Temporizador silencioso
+silenttimer() {
+sleeptime=$1
+while [ $sleeptime -gt 0 ]; do
+  echo -ne -e "\e[33mTiempo restante: $sleeptime segundos\e[0m \r"
+  sleep 1
+  ((sleeptime--))
+done
+}
+
 # Verificación x2
 if [ $# -gt 0 ]; then
 echo "Ejecutando comando del parámetro..."
 else
 echo "Para ver la lista de utilidades, escriba HELP"
 echo " "
+fi
+
+# Mostrar tareas pendientes si existen
+if [ "$SHOW_TASKS_ON_LAUNCH" == "true" ]; then
+pendingtasks=$(grep -v "✅" "$TODO_FILE")
+mensajes=( "Es hora de ponerse manos a la obra. 💪" "Tus tareas están mejor organizadas con UtilsX To-Do. 🔥" "¡Vamos $USERNAME! ✅" "Hoy toca avanzar un poco más. ⚡" "El comando de hoy: do_it_now 💾" "¡Activa tu modo productividad! ⚡" "Hoy ganas puntos de XP. 🌟")
+if [ -n "$pendingtasks" ]; then
+echo -e "\e[1;32mTienes las siguientes \e[0;33mtareas pendientes\e[0m en \e[1;34mUtilsX To-Do: \e[0m"
+echo "$pendingtasks"
+echo -e "\e[1;33m${mensajes[$((RANDOM % ${#mensajes[@]}))]}\e[0m"
+echo " "
+fi
 fi
 
 # Define el texto del prompt, carga el historial y habilita la visibilidad del directorio actual en lugar del texto del prompt
@@ -498,13 +510,6 @@ echo "$extract"
 fi
 }
 
-# Función para mostrar las tareas en to-do
-show_tasks_todo() {
-echo "📃 Lista de tareas 📃"
-nl -w2 -s'. ' "$TODO_FILE"
-echo " "
-}
-
 # Función para añadir una contraseña
 add_password() {
 openssl enc -aes-256-cbc -pbkdf2 -d -iter 200000 -salt -in "$PASSWORD_FILE" -pass pass:"$MASTERKEY" > temp.txt 2>/dev/null || touch temp.txt
@@ -562,11 +567,27 @@ esac
 done
 }
 
+# Función para mostrar las tareas en to-do
+show_tasks_todo() {
+echo " "
+echo -e "📃 \e[1;33mLista de tareas\e[0m 📃"
+i=1
+while IFS= read -r line; do
+if [[ "$line" == *"✅"* ]]; then
+echo -e "\e[1;32m${i}. ${line}\e[0m"
+else
+echo -e "\e[33m${i}. ${line}\e[0m"
+fi
+((i++))
+done < "$TODO_FILE"
+}
+
 # Función para marcar una tarea como completada en to-do
 complete_tasks_todo() {
+show_tasks_todo
 read -p "Número de tarea a completar: " num
 sed -i "${num}s/^/✅ /" "$TODO_FILE"
-echo "✅ Tarea marcada como completada"
+echo -e "\e[1;37mTarea marcada como\e[1;32m completada.\e[0m 💪"
 echo " "
 }
 
@@ -578,16 +599,32 @@ else
 task="$*"
 fi
 echo "$task" >> "$TODO_FILE"
-echo "✅ Tarea añadida"
+echo -e "\e[1;37mTarea\e[1;32m añadida.\e[0m"
 echo " "
 }
 
 # Función para eliminar tareas de to-do
 delete_tasks_todo() {
+show_tasks_todo
+if [[ -z "$1" ]]; then
 read -p "Número de tarea a eliminar: " num
+else
+num=$1
+fi
 sed -i "${num}d" "$TODO_FILE"
-echo "🗑️ Tarea eliminada"
+echo -e "\e[1;37mTarea\e[2;37m eliminada.\e[0m"
 echo " "
+}
+
+# Función para un to-do sin entrar al menú
+directtodo() {
+echo " "
+case $1 in
+add) shift
+     add_tasks_todo "$@" ;;
+list) show_tasks_todo ;;
+del) delete_tasks_todo ;; 
+esac
 }
 
 # Función principal del menú de to-do
@@ -600,33 +637,45 @@ if [ -f "$TODO_FILE" ]; then
 else
   echo -e "\e[32mSe creará un archivo de tareas en el directorio del programa...\e[0m"
   touch "$TODO_FILE"
-  echo -e "\e[1;34m¡Bienvenido a UtilsX To-Do!\e[0m"
+  read -p "¿Desea que to-do te muestre tus tareas pendientes al iniciar el programa? [S/N] " todoshowtasksselec
+  if [ "$todoshowtasksselec" == "S" ] || [ "$todoshowtasksselec" == "s" ]; then
+  echo "SHOW_TASKS_ON_LAUNCH=true" >> $CONFIG_FILE
+  else
+  echo "SHOW_TASKS_ON_LAUNCH=false" >> $CONFIG_FILE
+  fi
+  echo " "
+  echo -e "\e[1;32m¡Bienvenido a \e[1;34mUtilsX To-Do!\e[0m"
+fi
+if [[ ! -z "$1" ]]; then
+directtodo $*
+return
 fi
 # Lista de opciones
-echo -e "\e[33mOpciones: \e[0m"
-echo "list = Ver lista de tareas"
-echo "add = Agregar una tarea"
-echo "complete = Marcar una tarea como completada"
-echo "del = Eliminar una tarea"
-echo "exit = Salir"
-echo "help = Muestra este mensaje"
+echo -e "\e[0;33mElija una opción para continuar: \e[0m"
+echo "1) Ver lista de tareas"
+echo "2) Agregar una tarea"
+echo "3) Marcar una tarea como completada"
+echo "4) Salir"
+echo "5) Eliminar una tarea"
+echo "6) Muestra este mensaje"
 # Aquí se definen las opciones
 while $dontendtodo; do
-  read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' opciontodo
+  read -p $'\e[1;33m'"Opción > "$'\e[0m' opciontodo
   case $opciontodo in
-    list) show_tasks_todo ;;
-    add) add_tasks_todo ;;
-    complete) complete_tasks_todo ;;
-    exit) echo " "
+    1) show_tasks_todo
+       echo " " ;;
+    2) add_tasks_todo ;;
+    3) complete_tasks_todo ;;
+    4) echo " "
           dontendtodo=false ;;
-    del) delete_tasks_todo ;;
-    help) echo -e "\e[33mOpciones: \e[0m"
-          echo "list = Ver lista de tareas"
-          echo "add = Agregar una tarea"
-          echo "complete = Marcar una tarea como completada"
-          echo "del = Eliminar una tarea"
-          echo "exit = Salir"
-          echo "help = Muestra este mensaje"
+    5) delete_tasks_todo ;;
+    6) echo -e "\e[33mOpciones: \e[0m"
+          echo "1) list = Ver lista de tareas"
+          echo "2) add = Agregar una tarea"
+          echo "3) complete = Marcar una tarea como completada"
+          echo "4) del = Eliminar una tarea"
+          echo "5) exit = Salir"
+          echo "6) help = Muestra este mensaje"
           echo " " ;;
     *) echo -e "\e[33mEntrada no válida\e[0m" ;;
 esac
