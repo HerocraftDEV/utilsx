@@ -174,9 +174,9 @@ calc() {
 read -p "Seleccione el primer número: " fn
 read -p "Seleccione el operador (+ * / -): " op
 read -p "Seleccione el segundo número: " sn
+echo "$fn $op $sn"
 resultado=$(echo "scale=2; $fn $op $sn" | bc)
 echo "Resultado: $resultado"
-echo " "
 }
 
 # Usa /dev/urandom para generar una contraseña aleatoria de determinada longitud, comando PASSGEN
@@ -1205,6 +1205,10 @@ while true; do
     wiki "$buscar"
     echo " "
     ;;
+  calc)
+    parametro="${primeraentrada#calc}"
+    calc $parametro
+    ;;
   help)
     ayuda
     ;;
@@ -1214,18 +1218,23 @@ while true; do
     ;;
   exit)
     echo "Cerrando..."
-    if [ $devmode == true ]; then
+    if [[ $devmode == true ]]; then
     echo "Eliminando datos y configuraciones del programa..."
     rm -r $PROGRAMPATH/utilsx_data
-    if [ -d $PLUGINS_PATH ]; then
+    if [[ -d $PLUGINS_PATH ]]; then
     echo "Eliminando plugins..."
     rm -r $PLUGINS_PATH
     fi
     echo "Eliminando verificador de sesión Devmode..."
     rm $HOME/.devmodeverifier
     fi
-    if [ -e $PROGRAMPATH/utilsx_data/.copilothist.json ]; then
+    if [[ -e $PROGRAMPATH/utilsx_data/.copilothist.json ]]; then
+    echo "Eliminando historial de Copilot..."
     rm $PROGRAMPATH/utilsx_data/.copilothist.json
+    fi
+    if [[ -d $BACKUPS_PATH ]]; then
+    echo "Eliminando backups..."
+    rm -r $BACKUPS_PATH
     fi
     break
     ;;
