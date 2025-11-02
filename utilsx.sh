@@ -262,7 +262,7 @@ echo -e "\e[33mCompletado. El programa se reiniciará para terminar los cambios.
 silenttimer 3
 echo " "
 $PROGRAMPATH/utilsx.sh
-break
+exit 0
 else
 echo -e "\e[33mNo se encontró la copia de seguridad\e[0m"
 echo " "
@@ -359,6 +359,7 @@ fi
 
 # Asistente de IA con openrouter API y modelo deepseek
 copilot() {
+copilotcommandfunc=false
 if [ ! -e $PROGRAMPATH/utilsx_data/.copilotverifier ]; then
 echo -e "\e[32mPuedes configurar el asistente con el comando copilot -config\e[0m"
 echo "Para ver la lista de parámetros, usa copilot -help"
@@ -531,6 +532,10 @@ read -s -p "Ingresa tu clave de descifrado: " key
 echo " "
 echo " "
 MASTERKEYVERIFY=$(openssl enc -aes-256-cbc -pbkdf2 -d -salt -iter 200000 -in $PROGRAMPATH/utilsx_data/.masterkey.enc -pass pass:"$key")
+if [ -z "$MASTERKEYVERIFY" ]; then
+echo "Clave incorrecta."
+return
+fi
 openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -d -in "$PASSWORD_FILE" -pass pass:"$MASTERKEYVERIFY"
 echo " "
 }
@@ -545,7 +550,7 @@ else
 touch $PROGRAMPATH/utilsx_data/.verifier
 read -p "Elija su clave de descifrado: " USERPASS
 MASTERKEY=$(openssl rand -base64 32) 
-echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -salt -iter 200000 -out ./utilsx_data/.masterkey.enc -pass pass:"$USERPASS"
+echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -salt -iter 200000 -out $PROGRAMPATH/utilsx_data/.masterkey.enc -pass pass:"$USERPASS"
 USERPASS="0"
 fi
 # Muestra la lista de opciones
