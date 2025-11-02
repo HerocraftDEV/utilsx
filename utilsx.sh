@@ -181,7 +181,11 @@ echo "Resultado: $resultado"
 
 # Usa /dev/urandom para generar una contraseña aleatoria de determinada longitud, comando PASSGEN
 random_pass_gen() {
+if [[ -z "$1" ]]; then
 read -p "Longitud: " LONGITUD
+else
+LONGITUD=$1
+fi
 echo "Contraseña generada: "
 < /dev/urandom tr -dc 'A-Za-z0-9!@#$%&*()_=/\[]' | head -c $LONGITUD
 echo
@@ -544,14 +548,13 @@ echo " "
 pass_manager() {
 dontclosepassmanager=true
 # Verifica si es la primera vez que entras al PASSMANAGER, si es así crea una nueva MASTERKEY
-if [ -e "$PROGRAMPATH/utilsx_data/.verifier" ]; then
-:
-else
+if [ ! -e "$PROGRAMPATH/utilsx_data/.verifier" ]; then
 touch $PROGRAMPATH/utilsx_data/.verifier
 read -p "Elija su clave de descifrado: " USERPASS
 MASTERKEY=$(openssl rand -base64 32) 
 echo "$MASTERKEY" | openssl enc -aes-256-cbc -pbkdf2 -salt -iter 200000 -out $PROGRAMPATH/utilsx_data/.masterkey.enc -pass pass:"$USERPASS"
 USERPASS="0"
+MASTERKEY="0"
 fi
 # Muestra la lista de opciones
 echo " "
@@ -573,8 +576,62 @@ esac
 done
 }
 
+
+# Sincronizar tareas de Todoist con UtilsX To-Do
+todoist_sync() {
+# Configuración del API token
+if [[ -z "$TODOIST_API_TOKEN" ]]; then
+echo "Para sincronizar UtilsX To-Do con Todoist, consiga su API token de Todoist."
+echo "El API token de Todoist se puede encontrar en Configuración > Integraciones > Desarrolladores"
+read -p "Escriba su API token de Todoist: " todoist_token
+echo "TODOIST_API_TOKEN=$todoist_token" >> $CONFIG_FILE
+source $CONFIG_FILE
+todoist_token=
+echo -e "\e[1;32mSincronizando sus tareas con Todoist...\e[0m"
+fi
+
+# Crea un nuevo archivo de UtilsX To-Do vacío
+rm $TODO_FILE
+touch $TODO_FILE
+
+# Solicita las tareas pendientes a la API de Todoist en formato json
+tasks_json=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN"\
+   -H "Content-Type: application/json" \
+   https://api.todoist.com/rest/v2/tasks)
+
+# Solicita las tareas completadas a la API de Todoist en formato json
+completed_tasks_json=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" https://api.todoist.com/sync/v9/completed/get_all?limit=200)
+
+# Pasa las tareas pendientes a un formato entendible por UtilsX To-Do
+todoist_tasks=$(echo "$tasks_json" | jq -r '.[] | "\(.content) | \(.id)"')
+
+# Pasa las tareas completadas a un formato entendible por UtilsX To-Do
+completed_todoist_tasks=$(echo "$completed_tasks_json" | jq -r '.items[] | "\(.content) | \(.id)"')
+
+# Guarda las tareas completadas de todoist en el archivo de UtilsX To-Do y les coloca el ✅
+if [[ "$SHOW_COMPLETED_TASKS_TODOIST" == "true" ]]; then
+ids=($(echo "$completed_tasks_json" | jq -r '.items[].id'))
+if [[ ! -z "$completed_todoist_tasks" ]]; then
+echo "$completed_todoist_tasks" >> $TODO_FILE
+for id in "${ids[@]}"; do
+sed -i "/| $id/s/^/✅ /" $TODO_FILE
+done
+fi
+fi
+
+# Guarda las tareas pendientes de todoist en el archivo de UtilsX To-Do
+if [[ ! -z "$todoist_tasks" ]]; then
+echo "$todoist_tasks" >> $TODO_FILE
+fi
+}
+
 # Función para mostrar las tareas en to-do
 show_tasks_todo() {
+# Sincroniza con todoist si es que lo configuraste
+if [[ ! -z "$TODOIST_API_TOKEN" ]]; then
+todoist_sync
+fi
+# Muestra la lista de tareas 
 echo " "
 echo -e "📃 \e[1;33mLista de tareas\e[0m 📃"
 i=1
@@ -592,6 +649,12 @@ done < "$TODO_FILE"
 complete_tasks_todo() {
 show_tasks_todo
 read -p "Número de tarea a completar: " num
+if [[ ! -z "$TODOIST_API_TOKEN" ]]; then
+task_line=$(sed -n "${num}p" "$TODO_FILE")
+task_id=$(echo "$task_line" | awk -F'|' '{print $2}' | xargs)
+curl -s -X POST -H "Authorization: Bearer $TODOIST_API_TOKEN" \
+  "https://api.todoist.com/rest/v2/tasks/$task_id/close"
+fi
 sed -i "${num}s/^/✅ /" "$TODO_FILE"
 echo -e "\e[1;37mTarea marcada como\e[1;32m completada.\e[0m 💪"
 echo " "
@@ -604,7 +667,19 @@ read -p "Nombre de la tarea a añadir: " task
 else
 task="$*"
 fi
+
+# Envia solicitud a todoist para cerrar una tarea
+if [[ ! -z "$TODOIST_API_TOKEN" ]]; then
+RESPONSE=$(curl -s -X POST\
+  -H "Authorization: Bearer $TODOIST_API_TOKEN"\
+  -H "Content-Type: application/json"\
+  -d "{\"content\":\"$task\"}"\
+  https://api.todoist.com/rest/v2/tasks)
+task_id=$(echo "$RESPONSE" | jq -r '.id')
+echo "$task | $task_id" >> "$TODO_FILE"
+else
 echo "$task" >> "$TODO_FILE"
+fi
 echo -e "\e[1;37mTarea\e[1;32m añadida.\e[0m"
 echo " "
 }
@@ -616,6 +691,15 @@ if [[ -z "$1" ]]; then
 read -p "Número de tarea a eliminar: " num
 else
 num=$1
+fi
+# Envia solicitud a la API de todoist para eliminar una tarea
+if [[ ! -z "$TODOIST_API_TOKEN" ]]; then
+task_line=$(sed -n "${num}p" "$TODO_FILE")
+task_id=$(echo "$task_line" | awk -F'|' '{print $2}' | xargs)
+if [[ ! -z "$task_id" ]]; then
+deletetask=$(curl -s -X DELETE -H "Authorization: Bearer $TODOIST_API_TOKEN"\
+  "https://api.todoist.com/rest/v2/tasks/$task_id")
+fi
 fi
 sed -i "${num}d" "$TODO_FILE"
 echo -e "\e[1;37mTarea\e[2;37m eliminada.\e[0m"
@@ -631,6 +715,83 @@ add) shift
 list) show_tasks_todo ;;
 del) delete_tasks_todo ;; 
 esac
+}
+
+change_show_completed_tasks_todoist() {
+if grep -q "^SHOW_COMPLETED_TASKS_TODOIST=" "$CONFIG_FILE"; then
+if [[ "$SHOW_COMPLETED_TASKS_TODOIST" == "true" ]]; then
+sed -i "s/^SHOW_COMPLETED_TASKS_TODOIST=.*/SHOW_COMPLETED_TASKS_TODOIST=false/" "$CONFIG_FILE"
+echo " "
+echo "No se mostrarán las tareas completadas de Todoist en la lista de tareas."
+echo " "
+else
+sed -i "s/^SHOW_COMPLETED_TASKS_TODOIST=.*/SHOW_COMPLETED_TASKS_TODOIST=true/" "$CONFIG_FILE"
+echo " "
+echo "Se mostrarán las tareas completadas de Todoist en la lista de tareas."
+echo " "
+fi
+else
+echo "SHOW_COMPLETED_TASKS_TODOIST=true" >> "$CONFIG_FILE"
+echo " "
+echo "Se mostrarán las tareas completadas de Todoist en la lista de tareas."
+echo " "
+fi
+source $CONFIG_FILE
+}
+
+change_display_tasks_on_launch_mode() {
+if grep -q "^SHOW_TASKS_ON_LAUNCH=" "$CONFIG_FILE"; then
+if [[ "$SHOW_TASKS_ON_LAUNCH" == "true" ]]; then
+sed -i "s/^SHOW_TASKS_ON_LAUNCH=.*/SHOW_TASKS_ON_LAUNCH=false/" "$CONFIG_FILE"
+echo " "
+echo "No se mostrarán las tareas pendientes al iniciar UtilsX."
+echo " "
+else
+sed -i "s/^SHOW_TASKS_ON_LAUNCH=.*/SHOW_TASKS_ON_LAUNCH=true/" "$CONFIG_FILE"
+echo " "
+echo "Se mostraán las tareas pendientes al iniciar UtilsX."
+echo " "
+fi
+else
+echo "SHOW_TASKS_ON_LAUNCH=true" >> "$CONFIG_FILE"
+echo " "
+echo "Se mostrarán las tareas pendientes al iniciar UtilsX."
+echo " "
+fi
+source $CONFIG_FILE
+}
+
+disable_todoist_sync() {
+if grep -q "^TODOIST_API_TOKEN=" "$CONFIG_FILE"; then
+sed -i "s/^TODOIST_API_TOKEN=.*//" "$CONFIG_FILE"
+echo " "
+echo "Sincronización desactivada."
+echo " "
+fi
+}
+
+todoconfig() {
+dontquittodoconfig=true
+echo " "
+echo -e "\e[1;34mConfiguración de UtilsX To-Do\e[0m"
+echo -e "\e[33mElija una opción para continuar: \e[0m"
+echo "1) Sincronizar con Todoist"
+echo "2) Mostrar/No mostrar tareas pendientes al iniciar"
+echo "3) Mostrar/No mostrar tareas completadas de Todoist"
+echo "4) Desactivar sincronización con Todoist"
+echo "5) Salir"
+while [ "$dontquittodoconfig" == "true" ]; do
+read -p $'\e[1;33m'"Opción > "$'\e[0m' todoconfigselec
+case $todoconfigselec in
+1) todoist_sync ;;
+2) change_display_tasks_on_launch_mode ;;
+3) change_show_completed_tasks_todoist ;;
+4) disable_todoist_sync ;;
+5) echo " "
+   dontquittodoconfig=false
+   return 0 ;;
+esac
+done
 }
 
 # Función principal del menú de to-do
@@ -664,9 +825,10 @@ echo "3) Marcar una tarea como completada"
 echo "4) Salir"
 echo "5) Eliminar una tarea"
 echo "6) Muestra este mensaje"
+echo "7) Configuración de UtilsX To-Do"
 # Aquí se definen las opciones
 while $dontendtodo; do
-  read -p $'\e[1;33m'"Opción > "$'\e[0m' opciontodo
+  read -p $'\e[1;33m'" To-Do > "$'\e[0m' opciontodo
   case $opciontodo in
     1) show_tasks_todo
        echo " " ;;
@@ -683,6 +845,7 @@ while $dontendtodo; do
           echo "5) exit = Salir"
           echo "6) help = Muestra este mensaje"
           echo " " ;;
+    7) todoconfig ;;
     *) echo -e "\e[33mEntrada no válida\e[0m" ;;
 esac
 done
