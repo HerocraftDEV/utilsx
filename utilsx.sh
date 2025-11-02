@@ -1276,7 +1276,7 @@ while true; do
     showdir=false
     ;;
   *)
-    $primeraentrada
+    eval $primeraentrada
     ;;
 esac
 parametro=""
