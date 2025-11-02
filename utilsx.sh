@@ -124,7 +124,7 @@ fi
 # Mostrar tareas pendientes si existen
 if [ "$SHOW_TASKS_ON_LAUNCH" == "true" ]; then
 pendingtasks=$(grep -v "✅" "$TODO_FILE")
-mensajes=( "Es hora de ponerse manos a la obra. 💪" "Tus tareas están mejor organizadas con UtilsX To-Do. 🔥" "¡Vamos $USERNAME! ✅" "Hoy toca avanzar un poco más. ⚡" "El comando de hoy: do_it_now 💾" "¡Activa tu modo productividad! ⚡" "Hoy ganas puntos de XP. 🌟")
+mensajes=( "Es hora de ponerse manos a la obra. 💪" "Tus tareas están mejor organizadas con UtilsX To-Do." "¡Vamos $USERNAME! ✅" "Hoy toca avanzar un poco más. ⚡" )
 if [ -n "$pendingtasks" ]; then
 echo -e "\e[1;32mTienes las siguientes \e[0;33mtareas pendientes\e[0m en \e[1;34mUtilsX To-Do: \e[0m"
 echo "$pendingtasks"
