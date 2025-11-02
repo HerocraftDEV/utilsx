@@ -423,7 +423,8 @@ while [ "$dontquitcopilotconfig" == "true" ]; do
 read -p $'\e[1;33m'"Elija una opción: "$'\e[0m' copilotconfigselec
 case $copilotconfigselec in
 1) copilotpermissons ;;
-2) dontquitcopilotconfig=false ;;
+2) dontquitcopilotconfig=false
+   return 0 ;;
 esac
 done
 fi
