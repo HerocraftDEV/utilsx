@@ -828,7 +828,7 @@ echo "6) Muestra este mensaje"
 echo "7) Configuración de UtilsX To-Do"
 # Aquí se definen las opciones
 while $dontendtodo; do
-  read -p $'\e[1;33m'" To-Do > "$'\e[0m' opciontodo
+  read -p $'\e[1;33m'"To-Do > "$'\e[0m' opciontodo
   case $opciontodo in
     1) show_tasks_todo
        echo " " ;;
