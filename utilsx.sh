@@ -39,6 +39,8 @@ echo -e "\e[31mFalta '$1'.\e[0m"
 fi
 }
 
+trap 'return' SIGINT
+
 # Verifica las dependencias
 checkdep jq
 checkdep qrencode
@@ -1395,7 +1397,6 @@ while true; do
     fi
     echo "Eliminando verificador de sesión Devmode..."
     rm $HOME/.devmodeverifier
-    fi
     if [[ -e $PROGRAMPATH/utilsx_data/.copilothist.json ]]; then
     echo "Eliminando historial de Copilot..."
     rm $PROGRAMPATH/utilsx_data/.copilothist.json
@@ -1403,6 +1404,7 @@ while true; do
     if [[ -d $BACKUPS_PATH ]]; then
     echo "Eliminando backups..."
     rm -r $BACKUPS_PATH
+    fi
     fi
     break
     ;;
