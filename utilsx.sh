@@ -473,7 +473,7 @@ mensajes=$(jq -s '.' "$PROGRAMPATH/utilsx_data/.copilothist.json")
 
 # Genera el payload final
 payload=$(jq -n \
-  --arg model "deepseek/deepseek-r1-distill-llama-70b:free" \
+  --arg model "tngtech/deepseek-r1t2-chimera:free" \
   --arg sysmsg "$sysmsg" \
   --argjson msgs "$mensajes" \
   '{
@@ -481,7 +481,7 @@ payload=$(jq -n \
     messages: ([{"role": "system", "content": $sysmsg}] + $msgs)
 }')
 
-# Curl a la API con el modelo deepseek-r1-distill-llama-70b
+# Curl a la API de OpenRouter
 if [ $errorcodecopilot == 0 ]; then
 RESPONSE=$(curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Authorization: Bearer $api_key" \
