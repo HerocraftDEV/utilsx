@@ -1,7 +1,7 @@
 #!/bin/bash
-ver="v1.5"
-longver="v1.5.7"
-longvernv="1.5.7"
+ver="v1.6"
+longver="v1.6.0"
+longvernv="1.6.0"
 
 # Definiendo rutas de los archivos y variables
 PROGRAMPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
